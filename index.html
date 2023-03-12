@@ -109,7 +109,7 @@
                 //跳转到注册页面
                 window.location.href = 'signup.html'
             } else {
-                this.caselist = this.getData();//26*8*11
+                // this.caselist = this.getData();//26*8*11
                 console.log(this.caselist);
                 this.caseTotal = this.caselist.length
 
@@ -139,7 +139,7 @@
              * 初始化加载案例文件
              */
             loadJson: function () {
-                if(this.activeCase == 0) alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你认为的单个小写字母\n')
+                if(this.activeCase == 0) alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你的第一视感字母\n')
                 this.givenpercent=this.caselist[this.activeCase]["givenpercent"]; //指定的重叠比例
                 this.word=this.caselist[this.activeCase]["word"];
                 this.direction=this.caselist[this.activeCase]["direction"]; //方向1-8 依次为：从最右逆时针
@@ -165,7 +165,7 @@
                 //添加矩形块，oper为矩形块占被遮挡字母像素的百分比
                 var oper=this.liner_rect_overlap(octx,octx.canvas.width/2-this.max_wh[0]/2,octx.canvas.height/2+this.max_wh[1]/2,this.max_wh[0],this.max_wh[1],this.givenpercent,letterarr);
 
-                document.getElementById("myp").innerHTML= "当前重叠比例：" + this.givenpercent;
+                document.getElementById("myp").innerHTML= "当前字母像素重叠比例：" + this.givenpercent;
 
                 this.loadForm(); //根据高度节点的数目动态加载表单
                 // this.initNetwork(svg, result, havePos);
