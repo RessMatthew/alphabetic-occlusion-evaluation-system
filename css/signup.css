@@ -1,0 +1,123 @@
+#signup {
+    width: 400px;
+    /* height: 350px; */
+    position: absolute;
+    left: 50%;
+    top: 50px;
+    /* margin-top: -300px; */
+    margin-left: -200px;
+}
+
+.title {
+    width: 100%;
+    height: 50px;
+    font-size: 50px;
+    font-weight: 700;
+    text-align: center;
+    color: #4060b2;
+    margin: 0;
+    margin-bottom: 0.5em;
+}
+
+.title_signup {
+    width: 100%;
+    height: 30px;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    color: #849bd6;
+    margin: 0;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.signupForm {
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.item {
+    margin-top: 5px;
+}
+
+.itemradio {
+    margin-top: 5px;
+    height: 40px;
+}
+
+.input {
+    width: 300px;
+    height: 40px;
+    border-radius: 15px;
+    margin-top: 5px;
+    padding-left: 10px;
+    border: none;
+    box-shadow: 0px 1px 5px rgba(19, 86, 254, 0.6);
+}
+
+.input:hover {
+    box-shadow: 0px 1px 5px rgb(10, 62, 193);
+}
+
+.input:focus {
+    outline: medium;
+}
+
+.tip {
+    height: 20px;
+    padding: 0;
+}
+
+.text-danger {
+    font-size: small;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    color: #dc3545
+}
+
+.textStudy {
+    margin-top: 10px;
+    color: #4060b2;
+    /* font-weight: 700; */
+}
+
+.buttonBtn {
+    border-radius: 25px;
+    border: none;
+    width: 300px;
+    height: 40px;
+    background-color: #849bd6;
+    color: white;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.buttonBtn:hover {
+    background-color: #5079e1;
+}
+
+.buttonBtn:active {
+    background-color: #4060b2;
+}
+
+.cleanBtn {
+    margin-top: 10px;
+    position: relative;
+    left: 100%;
+    border: none;
+    text-decoration: underline;
+    color: #8f8f8f;
+    background-color: #ffffff;
+}
+
+.cleanBtn:hover {
+    color: #849bd6;
+}
+
+.cleanBtn:active {
+    color: #4060b2;
+}

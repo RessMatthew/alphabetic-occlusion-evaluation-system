@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>视觉度实验系统-实验</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <style>
+        [v-cloak]{
+            display: none;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="progress"></div>
+    <h4 class="task_intro">任务说明：请依据视觉估计度大小对图中高亮节点进行从大到小的排序，将节点编号填入表单对应位置，同时判断顺序相邻的两个节点之间度差距大小 </h4>
+
+    <div id="container">
+        <section class="svg">
+            <p id="_time"></p>
+            <p id="myp"></p>
+            <canvas id="myCanvas" width="200" height="100" style="border:1px solid #d3d3d3;"></canvas>
+        </section>
+
+        <section class="form-content">
+            <form id="order-form">
+                <p v-cloak style="margin: 0;margin-top: 10px;color: #4060b2;font-weight: 500;">实验进度：{{activeCase+1}}/{{caseTotal}} </p>
+            </form>
+            <div class="button" @click="changeCase()">下一步</div>
+            <!-- <div class="button" @click="savePos()">保存节点位置</div> -->
+        </section>
+
+    </div>
+
+</body>
+<script src="js/vue.js"></script>
+<script src="js/d3.min-v6.js"></script>
+<script src="js/jquery-3.4.1.min.js"></script>
+<script src="js/FileSaver.js"></script>
+<script>
+    var app = new Vue({
+        el: "#container",
+        data: {
+            metric: null, //计算word的宽度和高度
+            word: null,
+            givenpercent: null, //指定的重叠比例
+            direction: null, //方向1-8 依次为：从最右逆时针
+
+            caseTotal: null,
+
+            username: null, //姓名
+            sex: null, //性别
+            age: null, //年龄
+            academic: null, //学历
+            major: null, //专业
+            dataStudy: null, //是否学过数据结构
+            figureStudy: null, //是否学过图论
+            analysisStudy: null, //是否做过图数据分析相关工作
+            activeCase: 0,
+            flash: null, //计时器
+            startTime: null, //案例开始时间
+            endTime: null, //案例结束时间
+
+            caselist: [
+                {
+                    word: 'a',
+                    givenpercent: 0.1,
+                    direction: 1,
+                },
+                {
+                    word: 'b',
+                    givenpercent: 0.1,
+                    direction: 1,
+                },
+                {
+                    word: 'b',
+                    givenpercent: 0.2,
+                    direction:1,
+                }
+            ],
+        },
+        /**
+         * 获取注册信息缓存
+         */
+        mounted: function () {
+            //获取注册信息缓存
+            this.username = localStorage.getItem('username');
+            this.sex = localStorage.getItem('sex');
+            this.age = localStorage.getItem('age');
+            this.academic = localStorage.getItem('academic');
+            this.major = localStorage.getItem('major');
+            this.dataStudy = localStorage.getItem('dataStudy');
+            this.figureStudy = localStorage.getItem('figureStudy');
+            this.analysisStudy = localStorage.getItem('analysisStudy');
+
+            // if (this.username == null || this.major == null || this.analysisStudy == null) {
+            //     //跳转到注册页面
+            //     window.location.href = 'signup.html'
+            // } else {
+            //     // console.log("有账号：", this.username)
+            //     //打乱caselist的顺序
+            //     caselist = this.caselist
+            //     caseorder = [0, 1] //前两个是预训练案例，顺序不能变
+            //     newcaselist = [caselist[0], caselist[1]]
+            //     // 0-caselist.length-1 中选择caselist.length个不重复的数字
+            //     while (newcaselist.length < caselist.length) {
+            //         let num = parseInt(Math.random() * (caselist.length))
+            //         if (caseorder.indexOf(num) == -1) {
+            //             caseorder.push(num)
+            //             newcaselist.push(caselist[num])
+            //         }
+            //     }
+            //     this.caselist = newcaselist
+            //
+            //     //出现一个弹窗提示用户进入预训练阶段
+            //     this.loadJson(this.caselist[this.activeCase]['name']); //需要触发的函数
+            //
+            // }
+
+            this.caseTotal = this.caselist.length
+            //打乱caselist的顺序
+            caselist = this.caselist // 获取要打乱顺序的案例列表
+            caseorder = [] //顺序不能变
+            newcaselist = []
+            // 0-caselist.length-1 中选择caselist.length个不重复的数字
+            while (newcaselist.length < caselist.length) { // 循环直到新的列表中包含和原始列表相同数量的案例
+                let num = parseInt(Math.random() * (caselist.length)) // 生成一个随机数字，范围为 0 到 caselist.length-1
+                if (caseorder.indexOf(num) == -1) {
+                    caseorder.push(num)
+                    newcaselist.push(caselist[num])
+                }
+            }
+            this.caselist = newcaselist // 将新的列表赋值给 this.caselist，完成打乱顺序的操作
+            //出现一个弹窗提示用户进入预训练阶段
+            this.loadJson(); //需要触发的函数
+        },
+
+        methods: {
+            /**
+             * 初始化加载案例文件
+             */
+            loadJson: function () {
+                if(this.activeCase == 0) alert('*******视觉评估实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你认为的字母\n')
+                this.givenpercent=this.caselist[this.activeCase]["givenpercent"]; //指定的重叠比例
+                this.word=this.caselist[this.activeCase]["word"];
+                this.direction=this.caselist[this.activeCase]["direction"]; //方向1-8 依次为：从最右逆时针
+
+                var c=document.getElementById("myCanvas");
+                var octx=c.getContext("2d");
+                octx.font="12px Times New Roman";
+                this.metric = this.getTextMetric(this.word); //计算this.word的宽度和高度
+
+                octx.fillText(this.word,octx.canvas.width/2-this.metric[0]/2,octx.canvas.height/2+this.metric[1]/2);
+                console.log("原始画布的文字开始坐标为："+(octx.canvas.width/2-this.metric[0]/2)+",,,"+(octx.canvas.height/2+this.metric[1]/2));
+                console.log("字符高度为："+octx.canvas.height/2+"++++"+this.metric[1]/2);
+                var arr=this.get_global(octx); //获取已经被占用的像素坐标
+                console.log("文本占用像素的坐标为：" + arr);
+
+                //将传入文本字符串转换为像素信息组成的数组
+                var letterarr=this.get_letter(this.word);
+
+                //添加矩形块，oper为矩形块占被遮挡字母像素的百分比
+                var oper=this.liner_rect_overlap(octx,octx.canvas.width/2-this.metric[0]/2,octx.canvas.height/2+this.metric[1]/2,this.metric[0],this.metric[1],this.givenpercent,letterarr);
+
+                document.getElementById("myp").innerHTML= "指定的重叠比例为" + this.givenpercent;
+
+                this.loadForm(); //根据高度节点的数目动态加载表单
+                // this.initNetwork(svg, result, havePos);
+
+                this.initTimer(); //每个案例限时完成任务
+
+                //记录当前时间
+                this.startTime = Date.now();
+                // });
+
+            },
+            /**
+             * 页面初始化的时候根据高度节点的数目动态加载表单
+             */
+            loadForm: function () {
+                let formElement = document.getElementById("order-form")
+                formElement.appendChild(this.generateDivOrder()) // 生成给视觉度排序的表单，表单内的input为text
+            },
+
+            /**
+             * 每个案例限制完成时间，初始化计时器函数
+             */
+            initTimer: function () {
+                let that = this;
+                let timerCount = 5;
+
+                this.flash = setInterval(function () { //每1秒刷新一次
+                    document.getElementById("_time").innerHTML= '开始答题倒计时：'+ timerCount +'秒';
+                    timerCount--;
+
+                    //倒计时结束
+                    if (timerCount === -1){
+
+                        clearInterval(that.flash);   //关闭刷新
+                    }
+                }, 1000);
+            },
+
+            /**
+             * 更新进度条
+             * @param {int} current 当前进度
+             * @param {int} target 总共进度
+             */
+            updateProgress: function (current, target) {
+                let percent = parseInt((current / target) * 100)
+                progressBar = document.querySelector('.progress')
+                progressBar.style.width = percent + '%'
+            },
+            /**
+             * 生成给视觉度排序的表单，表单内的input为text
+             */
+            generateDivOrder() {
+                let divElement = document.createElement('div') // 创建一个 div 元素
+                divElement.classList.add('order') // 为该 div 元素添加一个名为 'order' 的 CSS 类
+
+                let labelElement = document.createElement('label') // 创建一个 label 元素
+                labelElement.innerHTML = '被遮挡字母是' +  ': ' //设置 label 的文本
+                labelElement.classList.add('fontweight') // 为 label 添加一个名为 'fontweight' 的 CSS 类
+
+                let inputElement = document.createElement('input') // 创建一个 input 元素
+                inputElement.type = "text" // 将 input 元素的类型设置为 'text'
+                // inputElement.name = "node" + (i + 1).toString()
+
+                divElement.appendChild(labelElement)
+                divElement.appendChild(inputElement)
+
+                return divElement
+            },
+
+            /**
+             * 检查输入框中填写的信息是否符合要求
+             */
+            checkInputText: function () {
+                let inputElements = document.querySelectorAll('.order input')
+                let inputElement = inputElements[0];
+
+                if(inputElement.value.length !== 1){
+                    return false
+                }
+                this.caselist[this.activeCase]['input'] = inputElement.value
+                if(inputElement.value === this.caselist[this.activeCase]['word']){
+                    this.caselist[this.activeCase]['flag'] = 'true'
+                }else{
+                    this.caselist[this.activeCase]['flag'] = 'false'
+                }
+                return true
+            },
+            /**
+             * 用户点击下一步按钮后，更新画布中呈现的案例
+             */
+            changeCase: function () {
+                let isCorrecOrder = this.checkInputText()
+                // let isCorrectGap = this.checkInputRadio() //检查radio框中填写的信息是否符合要求
+                if (!isCorrecOrder) {
+                    alert('输入不合规')
+                    return;
+                }
+                let that = this;
+                if (this.activeCase + 1 >= this.caselist.length) {
+                    // console.log("已结束")
+                    //结束实验，则结束最后一个案例时间
+                    this.endTime = Date.now();
+                    clearInterval(that.flash);   //关闭刷新
+                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
+                    // console.log((this.endTime - this.startTime)/1000)
+
+                    if (confirm("实验结束，确定要退出系统？")) {
+                        //保存信息
+                        let casedata = this.caselist;
+
+                        // casedata.splice(0, 2) //删除前两个预训练案例
+
+                        let localCaselist = []
+                        // 处理数据为csv的格式
+                        let csvString = ""
+                        casedata.map(item => {
+                            let row = {
+                                'word': item.word,
+                                'direction': item.direction,
+                                'givenpercent': item.givenpercent,
+                            }
+                            localCaselist.push(row) //caselist里面的案例顺序以答案为准
+
+                            csvString += item.word + ',' + item.direction + ',' + item.givenpercent + ',' + item.input + ',' + item.time + ',' + item.flag
+                            csvString += '\r\n'
+                        })
+                        //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
+                        //可以通过JSON对象提供的parse和stringify将其他数据类型转化成字符串，再存储到storage中
+                        let str = JSON.stringify(localCaselist);
+                        localStorage.setItem("localCaselist", str);
+
+                        // 保存为csv文件并添加下载按钮
+                        csvString = "data:application/csv," + encodeURIComponent(csvString);
+                        let link = document.createElement('a');
+                        link.href = csvString;
+                        //对下载的文件命名
+                        link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
+                            "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
+                            .figureStudy + "_" + this.analysisStudy + ".csv";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        //跳转到反馈页面
+                        window.location.href = 'end.html'
+                    }
+                } else {
+                    //进入下一案例，则结束时间
+                    this.endTime = Date.now();
+                    clearInterval(that.flash);   //关闭刷新
+                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
+                    // console.log((this.endTime - this.startTime)/1000)
+                    console.log("123123",this.caselist)
+                    //再次询问
+                    if (confirm("准备好进行下一个案例了吗？")) {
+                        this.activeCase++;
+                        d3.select("#mainsvg").selectAll("g").remove();
+                        // d3.select("#order-form div").remove();
+                        $("#order-form div").remove();
+                        //更新进度条 分为两个环节
+                        this.updateProgress(this.activeCase, this.caselist.length )
+                        this.loadJson(that.caselist[that.activeCase]["name"]);
+                    }
+                }
+
+            },
+
+
+            //获取已经被占用的像素坐标
+            get_global: function (ctx) {
+                var arr=[];
+                //var sum=0;
+                var imagedata=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+                var data = imagedata.data;
+                for(var j=0;j<ctx.canvas.height;j++){
+                    for(var i=0;i<ctx.canvas.width;i++){
+                        if(data[(j*ctx.canvas.width+i)*4+3]!=0){
+                            arr.push({x:j,y:i,val:[data[(j*ctx.canvas.width+i)*4],data[(j*ctx.canvas.width+i)*4+1],
+                                    data[(j*ctx.canvas.width+i)*4+2],data[(j*ctx.canvas.width+i)*4+3]]});
+                            // sum+=1;
+                        }
+                    }
+                }
+                return arr;
+            },
+            //将传入文本字符串转换为像素信息组成的数组
+            get_letter: function (text) {
+                var  offCanvas3 = document.createElement("canvas");//离屏canvas 通过代码创建出来的
+                offCanvas3.width=200;
+                offCanvas3.height=100;
+                var offContext3 = offCanvas3.getContext("2d");
+                var arrletter=[];
+                offContext3.font = '12px Times New Roman';
+                var xx=0;
+                for(var i=0;i<text.length;i++){
+                    const charWidth = offContext3.measureText(text[i]).width;
+                    console.log("字符的宽度为："+charWidth);
+                    offContext3.fillText(text[i],offContext3.canvas.width/2-this.metric[0]/2+xx,offContext3.canvas.height/2+this.metric[1]/2);
+                    console.log("文字的左下角坐标为："+(offContext3.canvas.width/2-this.metric[0]/2+xx)+" ,,,"+(offContext3.canvas.height/2+this.metric[1]/2));
+                    var arr4=this.get_global(offContext3);
+                    arrletter.push(arr4);
+                    xx+=charWidth;
+                    offContext3.clearRect(0,0,200,100);
+                    console.log("字母"+text[i]+"占用的像素信息为：");
+                    console.log(arr4);
+                }
+                return arrletter;
+             },
+            //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
+            liner_rect_overlap: function (ctx,startx,starty,width,height,percent,inletterarr){
+                // var temp3=Math.floor(Math.random()*8)+1; //生成一个1到8的随机数
+                temp3=this.direction
+                //获取已经被占用的像素坐标
+                function get_global(ctx){
+                    var arr=[];
+                    //var sum=0;
+                    var imagedata=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+                    var data = imagedata.data;
+                    for(var j=0;j<ctx.canvas.height;j++){
+                        for(var i=0;i<ctx.canvas.width;i++){
+                            if(data[(j*ctx.canvas.width+i)*4+3]!=0){
+                                arr.push({x:j,y:i,val:[data[(j*ctx.canvas.width+i)*4],data[(j*ctx.canvas.width+i)*4+1],
+                                        data[(j*ctx.canvas.width+i)*4+2],data[(j*ctx.canvas.width+i)*4+3]]});
+                                // sum+=1;
+                            }
+                        }
+                    }
+                    return arr;
+                }
+                //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
+                function rect_overlap2(ctx,startx,starty,width,height, percent,temp3,arrletter){
+                    //获取所有字母的平均长度；
+                    function avg(arr){
+                        var sum=0;
+                        for(var i=0;i<arr.length;i++){
+                            sum+=arr[i];
+                        }
+                        return sum/arr.length;
+                    }
+                    //获取白色矩形块遮挡后的像素信息-  算法2，使用canvas和offcanvas两个画布中的被遮挡部分坐标比对
+                    function get_change2(arr1,arr2){
+                        var sum3=0;
+                        for(var i=0;i<arr1.length;i++){
+                            for(var j=0;j<arr2.length;j++){
+                                if(arr1[i].x==arr2[j].x){
+                                    if(arr1[i].y==arr2[j].y){
+                                        sum3+=1;
+                                    }
+                                }
+                            }
+                        }
+                        return sum3/arr1.length;
+                    }
+                    //计算文本的宽度和高度
+                    function getTextMetric(text){
+                        const canvas=document.createElement('canvas');
+                        const context=canvas.getContext('2d');
+                        context.font='12px Times New Roman';
+                        var me2=context.measureText(text);
+                        var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
+                        var wordw=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
+                        return [wordw,wordh];
+                    }
+                    var offCanvas=document.createElement("canvas");
+                    offCanvas.width=200;
+                    offCanvas.height=100;
+                    var offContext = offCanvas.getContext("2d");
+
+                    //指定矩形块的宽度！！！！！！！
+                    var m = getTextMetric('m')
+                    var rect_width= m[0];
+                    //var arrletter=get_letter(word);
+                    //const average = arr => arr.reduce((acc, val) => acc + val, 0) / arr.length;
+                    //var temp3=1;
+                    console.log("----------开始模拟矩形块与word重叠");
+                    //offContext.fillRect(10,0,20,20);
+                    // offContext.fillStyle("ffffff");
+                    if(temp3==1){
+                        offContext.fillRect(startx+width,starty-height,rect_width,height);
+                        var arr2=get_global(offContext);
+                        console.log("矩形块的像素信息为：");
+                        console.log(arr2);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        //  var percent1=average(arrpercent);
+                        var x=0;
+                        while(percent1<percent){
+                            x+=1;
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx+width-x,starty-height,rect_width,height);
+                            arr2=get_global(offContext);
+
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+
+                        }
+                        ctx.drawImage(offCanvas,0,0);
+                    }else if(temp3==2){
+                        offContext.fillRect(startx+width,starty-height-height,rect_width,height);
+                        var arr2=get_global(offContext);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        var x=0;
+                        while(percent1<percent){
+
+                            x+=1;
+
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx+width-x,starty-height-height+x,rect_width,height);
+                            arr2=get_global(offContext);
+
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+                        }
+                        ctx.drawImage(offCanvas,0,0);
+
+                    }
+                    else if(temp3==3){
+                        offContext.fillRect(startx+width/2-rect_width/2,starty-height-height,rect_width,height);
+                        var arr2=get_global(offContext);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        var x=0;
+                        while(percent1<percent){
+                            x+=1;
+
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx+width/2-rect_width/2,starty-height-height+x,rect_width,height);
+                            arr2=get_global(offContext);
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+                        }
+                        ctx.drawImage(offCanvas,0,0);
+                        // ctx.fillRect(startx+width/2-rect_width/2,starty-height-height,rect_width,height);
+                    }
+                    else if(temp3==5){
+                        offContext.fillRect(startx-rect_width,starty-height,rect_width,height);
+                        var arr2=get_global(offContext);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        var x=0;
+                        while(percent1<percent){
+
+                            x+=1;
+
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx-rect_width+x,starty-height,rect_width,height);
+                            arr2=get_global(offContext);
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+                        }
+
+                        ctx.drawImage(offCanvas,0,0);
+                        //ctx.fillRect(startx-rect_width,starty-height,rect_width,height);
+                    }
+                    else if(temp3==6){
+                        offContext.fillRect(startx-rect_width,starty,rect_width,height);
+                        var arr2=get_global(offContext);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        var x=0;
+                        while(percent1<percent){
+
+                            x+=1;
+
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx-rect_width+x,starty-x,rect_width,height);
+                            arr2=get_global(offContext);
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+                        }
+                        ctx.drawImage(offCanvas,0,0);
+                        //ctx.fillRect(startx-rect_width,starty,rect_width,height);
+                    }
+                    else if(temp3==4){
+
+                        offContext.fillRect(startx-rect_width,starty-height-height,rect_width,height);
+                        //ctx.drawImage(offCanvas, 0, 0);
+                        var arr2=get_global(offContext);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        var x=0;
+                        while(percent1<percent){
+                            x+=1;
+
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx-rect_width+x,starty-height-height+x,rect_width,height);
+                            arr2=get_global(offContext);
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+                        }
+                        ctx.drawImage(offCanvas,0,0);
+                        //ctx.fillRect(startx-rect_width,starty-height-height,rect_width,height);
+                    }
+                    else if(temp3==7){
+
+                        offContext.fillRect(startx+width/2-rect_width/2,starty,rect_width,height);
+                        var arr2=get_global(offContext);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        var x=0;
+                        while(percent1<percent){
+                            x+=1;
+
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx+width/2-rect_width/2,starty-x,rect_width,height);
+                            arr2=get_global(offContext);
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+                        }
+                        ctx.drawImage(offCanvas,0,0);
+                        //ctx.fillRect(startx+width/2-rect_width/2,starty,rect_width,height);
+                    }
+                    else if(temp3==8){
+
+                        offContext.fillRect(startx+width,starty,rect_width,height);
+                        var arr2=get_global(offContext);
+                        var arrpercent=[];
+                        for(var k=0;k<arrletter.length;k++){
+                            console.log("第"+k+"个字母的像素信息为：");
+                            console.log(arrletter[k]);
+
+                            arrpercent.push(get_change2(arrletter[k],arr2));
+                        }
+                        var percent1=avg(arrpercent);
+                        console.log("最初的百分比为："+percent1);
+                        var x=0;
+                        while(percent1<percent){
+
+                            x+=1;
+
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(startx+width-x,starty-x,rect_width,height);
+                            arr2=get_global(offContext);
+                            var arrpercent=[];
+                            for(var k=0;k<arrletter.length;k++){
+                                arrpercent.push(get_change2(arrletter[k],arr2));
+                            }
+                            var percent1=avg(arrpercent);
+                            console.log("百分比为："+percent1);
+                        }
+                        ctx.drawImage(offCanvas,0,0);
+                        // ctx.fillRect(startx+width,starty,rect_width,height);
+                    }
+                    return percent1;
+
+                }
+                var per = rect_overlap2(ctx,startx,starty,width,height,percent,temp3,inletterarr);
+                return per;
+            },
+            //计算文本的宽度和高度
+            getTextMetric: function (text) {
+                const canvas=document.createElement('canvas');
+                const context=canvas.getContext('2d');
+                context.font='12px Times New Roman';
+                var me2=context.measureText(text);
+                var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
+                var wordw=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
+                return [wordw,wordh];
+            },
+        }
+    })
+</script>
+
+</html>

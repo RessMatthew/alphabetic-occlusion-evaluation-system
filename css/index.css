@@ -1,0 +1,123 @@
+.fontweight {
+  font-weight: 500;
+}
+.button {
+  width: 180px;
+  height: 30px;
+  background-color: #4060b2;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin-top: 1.33em;
+  margin-bottom: 10px;
+}
+
+.button:active {
+  background-color: #4060b2;
+}
+
+.button:hover{
+  background-color: #647ec0;
+}
+
+.progress {
+  height: 3px;
+  width: 0%;
+  background-color: #849bd6;
+}
+
+.task_intro{
+  margin-block: 0;
+  font-weight: normal;
+  margin: 0.8em 8px;
+  font-size: 15px;
+  padding-left: 10px;
+  color: #555;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin: 0 20px;
+  align-items: center;
+  /* width: 300px; */
+  height: auto;
+  max-height: 800px;
+  overflow-y: scroll;
+  border: 1px dotted #4060b2;
+}
+
+form {
+  /* font-size: 1.2em; */
+  color: #555;
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px;
+  /* padding-top: 1.33em; */
+  /* align-items: center; */
+  /* width: 80%; */
+}
+
+.gap-container {
+  margin: 0.5em 0;
+}
+.gap-container div {
+  color: #666;
+}
+
+form>.order {
+  margin: 20px 0px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+form .order img,
+form .order div {
+  width: 20px;
+  height: 20px;
+  margin-left: 5px;
+}
+
+form .order img:hover {
+  cursor: pointer;
+}
+
+input[type='text'] {
+  padding: 5px;
+  font-size: 0.8em;
+  width: 58%;
+}
+
+form label {
+  margin-right: 10px;
+}
+
+.svg {
+  flex: 2;
+}
+
+.svg svg {
+  border: 1px dotted #4060b2;
+  /*b24040*/
+}
+
+#container {
+  display: flex; 
+  width: 100%; 
+  height: 100%;
+  margin: 0 8px;
+  
+}
+
+body {
+  background-color: #fff;
+  margin: 0;
+}
+.hide {
+  display: none;
+}

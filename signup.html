@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>视觉度实验系统-注册</title>
+    <link rel="stylesheet" href="./css/signup.css">
+</head>
+
+<body style="background-color: #fff;">
+    <div id="signup">
+        <div class="title">视觉度实验系统</div>
+        <div class="title_signup">注册</div>
+
+        <div class="signupForm">
+            <div class="item">
+                <input type="text" class="input" name="username" placeholder="姓名" v-model="username" @blur="checkUsername">
+            </div>
+            <div class="tip">
+                <a v-if="usernameIsNull" class="text-danger">姓名不能为空</a>
+            </div>
+
+            <div class="item">
+                <input type="text" class="input" name="age" placeholder="年龄" v-model="age" @blur="checkAge">
+            </div>
+            <div class="tip">
+                <a v-if="ageIsNull" class="text-danger">年龄不能为空</a>
+            </div>
+
+            <div class="item">
+                <input type="text" class="input" name="academic" placeholder="学历" v-model="academic" @blur="checkAcademic">
+            </div>
+            <div class="tip">
+                <a v-if="academicIsNull" class="text-danger">学历不能为空</a>
+            </div>
+
+            <div class="item">
+                <input type="text" class="input" name="major" placeholder="专业" v-model="major" @blur="checkMajor">
+            </div>
+            <div class="tip">
+                <a v-if="majorIsNull" class="text-danger">专业不能为空</a>
+            </div>
+
+            <div class="itemradio">
+                <span class="textStudy">性别:&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</span>
+                <span>
+                    <input type="radio" v-model="sex" value="男" id="y1" name="sex" />
+                    <label for="y1">男</label>
+                </span>
+                <span>
+                    <input type="radio" v-model="sex" value="女" id="n1" name="sex" />
+                    <label for="n1">女</label>
+                </span>
+            </div>
+
+            <div class="itemradio">
+                <span class="textStudy">是否学过数据结构:&emsp;&emsp;&emsp;&emsp;&emsp;</span>
+                <span>
+                    <input type="radio" v-model="dataStudy" value="是" id="y2" name="dataStudy" />
+                    <label for="y2">是</label>
+                </span>
+                <span>
+                    <input type="radio" v-model="dataStudy" value="否" id="n2" name="dataStudy" />
+                    <label for="n2">否</label>
+                </span>
+            </div>
+
+            <div class="itemradio">
+                <span class="textStudy">是否学过图论:&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</span>
+                <span>
+                    <input type="radio" v-model="figureStudy" value="是" id="y3" name="figureStudy" />
+                    <label for="y3">是</label>
+                </span>
+                <span>
+                    <input type="radio" v-model="figureStudy" value="否" id="n3" name="figureStudy" />
+                    <label for="n3">否</label>
+                </span>
+            </div>
+
+            <div class="itemradio">
+                <span class="textStudy">是否做过图数据分析相关工作:</span>
+                <span>
+                    <input type="radio" v-model="analysisStudy" value="是" id="y4" name="analysisStudy" />
+                    <label for="y4">是</label>
+                </span>
+                <span>
+                    <input type="radio" v-model="analysisStudy" value="否" id="n4" name="analysisStudy" />
+                    <label for="n4">否</label>
+                </span>
+            </div>
+
+            <div class="item">
+                <button class="buttonBtn" @click="signUp">立即注册</button>
+            </div>
+        </div>
+        <!-- 清除缓存，测试时用 -->
+        <button class="cleanBtn" @click="clean">清除缓存账号</button>
+    </div>
+</body>
+<script src="js/vue.js"></script>
+<script src="js/d3.min-v6.js"></script>
+<script src="js/jquery-3.4.1.min.js"></script>
+<script src="js/FileSaver.js"></script>
+<script>
+    var app = new Vue({
+        el: "#signup",
+        data: {
+            usernameIsNull: false,
+            ageIsNull: false,
+            academicIsNull: false,
+            majorIsNull: false,
+            username: "", //姓名
+            age: "", //年龄
+            academic: "", //学历
+            major: "", //专业
+            sex: "男", //性别
+            dataStudy: "是", //是否学过数据结构
+            figureStudy: "是", //是否学过图论
+            analysisStudy: "是" //是否做过图数据分析相关工作
+        },
+        mounted: function() {
+
+        },
+        methods: {
+            checkUsername() {
+                if (this.username == "") {
+                    this.usernameIsNull = true;
+                } else {
+                    this.usernameIsNull = false;
+                }
+            },
+            checkAge() {
+                if (this.age == "") {
+                    this.ageIsNull = true;
+                } else {
+                    this.ageIsNull = false;
+                }
+            },
+            checkAcademic() {
+                if (this.academic == "") {
+                    this.academicIsNull = true;
+                } else {
+                    this.academicIsNull = false;
+                }
+            },
+            checkMajor() {
+                if (this.major == "") {
+                    this.majorIsNull = true;
+                } else {
+                    this.majorIsNull = false;
+                }
+            },
+            signUp() {
+                if (this.username == "" || this.age == "" || this.academic == "" || this.major == "") {
+                    alert("请填写完整信息！！");
+                } else {
+                    localStorage.setItem("username", this.username);
+                    localStorage.setItem("sex", this.sex);
+                    localStorage.setItem("age", this.age);
+                    localStorage.setItem("academic", this.academic);
+                    localStorage.setItem("major", this.major);
+                    localStorage.setItem("dataStudy", this.dataStudy);
+                    localStorage.setItem("figureStudy", this.figureStudy);
+                    localStorage.setItem("analysisStudy", this.analysisStudy);
+                    alert("注册成功!!!");
+                    //跳转到主页面
+                    window.location.href = 'index.html'
+                }
+            },
+            clean() { //清除缓存，测试时用
+                localStorage.removeItem('username');
+                localStorage.removeItem('sex');
+                localStorage.removeItem('age');
+                localStorage.removeItem('academic');
+                localStorage.removeItem('major');
+                localStorage.removeItem('dataStudy');
+                localStorage.removeItem('figureStudy');
+                localStorage.removeItem('analysisStudy');
+                alert("清除本地账号成功!!!");
+            }
+        },
+    });
+</script>
+
+</html>

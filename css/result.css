@@ -1,0 +1,16 @@
+.form-content {
+  flex:0.8;
+  margin: 0 10px;
+}
+
+.button {
+  background-color: #c34e4e;
+}
+
+.button:hover{
+  background-color: #c17070;
+}
+
+h3 {
+  color: #555;
+}
