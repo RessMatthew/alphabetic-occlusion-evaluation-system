@@ -1,37 +1,20 @@
 # visualdegree
 
-#### 介绍
-视觉度实验系统
-
-#### 软件架构
-软件架构说明
-
-
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
+## 字母遮挡识别系统-实验
 #### 使用说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1、注册
 
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+![image-20230313015143869](https://ressmatthew-picture-cloud-storage.oss-cn-hangzhou.aliyuncs.com/img/image-20230313015143869.png)
 
 
-#### 特技
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+2、依据第一视感识别被遮挡的单个字母，并将猜测填入表单对应位置
+
+![img](https://ressmatthew-picture-cloud-storage.oss-cn-hangzhou.aliyuncs.com/img/AgAABTYVD66TXSWykL9OnLnwczYr31F1.png)
+
+然后点击下一步
+
+结束会保存记录未csv文件
+
+![image-20230313015448456](https://ressmatthew-picture-cloud-storage.oss-cn-hangzhou.aliyuncs.com/img/image-20230313015448456.png)
