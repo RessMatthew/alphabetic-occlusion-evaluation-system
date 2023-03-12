@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>视觉度实验系统-实验</title>
+    <title>字母遮挡识别系统-实验</title>
     <link rel="stylesheet" href="./css/index.css">
     <style>
         [v-cloak]{
@@ -17,7 +17,7 @@
 
 <body>
     <div class="progress"></div>
-    <h4 class="task_intro">任务说明：请依据视觉估计度大小对图中高亮节点进行从大到小的排序，将节点编号填入表单对应位置，同时判断顺序相邻的两个节点之间度差距大小 </h4>
+    <h4 class="task_intro">任务说明：请依据第一视感识别被遮挡的单个字母，并将猜测填入表单对应位置 </h4>
 
     <div id="container">
         <section class="svg">
@@ -74,12 +74,12 @@
                 {
                     word: 'b',
                     givenpercent: 0.1,
-                    direction: 1,
+                    direction: 3,
                 },
                 {
                     word: 'b',
                     givenpercent: 0.2,
-                    direction:1,
+                    direction:5,
                 }
             ],
         },
@@ -151,6 +151,7 @@
 
                 var c=document.getElementById("myCanvas");
                 var octx=c.getContext("2d");
+                octx.clearRect(0,0,200,100);
                 octx.font="12px Times New Roman";
                 this.metric = this.getTextMetric(this.word); //计算this.word的宽度和高度
 
@@ -170,8 +171,8 @@
 
                 this.loadForm(); //根据高度节点的数目动态加载表单
                 // this.initNetwork(svg, result, havePos);
-
-                this.initTimer(); //每个案例限时完成任务
+                // alert("Ready?")
+                // this.initTimer(); //每个案例限时完成任务
 
                 //记录当前时间
                 this.startTime = Date.now();
@@ -328,7 +329,7 @@
                         $("#order-form div").remove();
                         //更新进度条 分为两个环节
                         this.updateProgress(this.activeCase, this.caselist.length )
-                        this.loadJson(that.caselist[that.activeCase]["name"]);
+                        this.loadJson();
                     }
                 }
 
