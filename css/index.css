@@ -34,20 +34,7 @@
   margin: 0.8em 8px;
   font-size: 15px;
   padding-left: 10px;
-  color: #555;
-}
-
-.form-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  margin: 0 20px;
-  align-items: center;
-  /* width: 300px; */
-  height: auto;
-  max-height: 800px;
-  overflow-y: scroll;
-  border: 1px dotted #4060b2;
+  color: #35363a;
 }
 
 form {
@@ -59,6 +46,12 @@ form {
   /* padding-top: 1.33em; */
   /* align-items: center; */
   /* width: 80%; */
+}
+
+#myp {
+  position: relative;
+  left: 20px;
+  color: #4060b2;
 }
 
 .gap-container {
@@ -76,16 +69,13 @@ form>.order {
   width: 100%;
 }
 
-form .order img,
+
 form .order div {
   width: 20px;
   height: 20px;
   margin-left: 5px;
 }
 
-form .order img:hover {
-  cursor: pointer;
-}
 
 input[type='text'] {
   padding: 5px;
@@ -97,25 +87,42 @@ form label {
   margin-right: 10px;
 }
 
-.svg {
-  flex: 2;
+.form-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin: 0 20px;
+  align-items: center;
+  justify-content: center;
+  /* width: 300px; */
+  height: auto;
+  max-height: 800px;
+  overflow-y: scroll;
+  border: 1px dotted #4060b2;
 }
 
-.svg svg {
+.svg {
+  flex: 2;
   border: 1px dotted #4060b2;
-  /*b24040*/
+}
+
+canvas {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 #container {
-  display: flex; 
-  width: 100%; 
-  height: 100%;
+  display: flex;
+  width: 100%;
+  height: 600px;
   margin: 0 8px;
-  
+
 }
 
 body {
-  background-color: #fff;
+  background-color: #dce2f1;
   margin: 0;
 }
 .hide {

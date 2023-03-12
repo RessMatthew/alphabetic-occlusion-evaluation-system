@@ -18,11 +18,9 @@
 <body>
     <div class="progress"></div>
     <h4 class="task_intro">任务说明：请依据第一视感识别被遮挡的单个字母，并将猜测填入表单对应位置 </h4>
-
     <div id="container">
         <section class="svg">
             <p id="_time"></p>
-            <p id="myp"></p>
             <canvas id="myCanvas" width="200" height="100" style="border:1px solid #d3d3d3;"></canvas>
         </section>
 
@@ -33,9 +31,8 @@
             <div class="button" @click="changeCase()">下一步</div>
             <!-- <div class="button" @click="savePos()">保存节点位置</div> -->
         </section>
-
     </div>
-
+    <p id="myp"></p>
 </body>
 <script src="js/vue.js"></script>
 <script src="js/d3.min-v6.js"></script>
@@ -81,7 +78,17 @@
                     word: 'b',
                     givenpercent: 0.2,
                     direction:5,
-                }
+                },
+                {
+                    word: 'f',
+                    givenpercent: 0.7,
+                    direction:6,
+                },
+                {
+                    word: 'z',
+                    givenpercent: 0.6,
+                    direction:2,
+                },
             ],
         },
         /**
@@ -98,49 +105,33 @@
             this.figureStudy = localStorage.getItem('figureStudy');
             this.analysisStudy = localStorage.getItem('analysisStudy');
 
-            // if (this.username == null || this.major == null || this.analysisStudy == null) {
-            //     //跳转到注册页面
-            //     window.location.href = 'signup.html'
-            // } else {
-            //     // console.log("有账号：", this.username)
-            //     //打乱caselist的顺序
-            //     caselist = this.caselist
-            //     caseorder = [0, 1] //前两个是预训练案例，顺序不能变
-            //     newcaselist = [caselist[0], caselist[1]]
-            //     // 0-caselist.length-1 中选择caselist.length个不重复的数字
-            //     while (newcaselist.length < caselist.length) {
-            //         let num = parseInt(Math.random() * (caselist.length))
-            //         if (caseorder.indexOf(num) == -1) {
-            //             caseorder.push(num)
-            //             newcaselist.push(caselist[num])
-            //         }
-            //     }
-            //     this.caselist = newcaselist
-            //
-            //     //出现一个弹窗提示用户进入预训练阶段
-            //     this.loadJson(this.caselist[this.activeCase]['name']); //需要触发的函数
-            //
-            // }
-            this.caselist = this.getData();//26*8*11
-            console.log(this.caselist);
-            this.caseTotal = this.caselist.length
+            if (this.username == null || this.major == null || this.analysisStudy == null) {
+                //跳转到注册页面
+                window.location.href = 'signup.html'
+            } else {
+                this.caselist = this.getData();//26*8*11
+                console.log(this.caselist);
+                this.caseTotal = this.caselist.length
 
-            //打乱caselist的顺序
-            caselist = this.caselist // 获取要打乱顺序的案例列表
+                //打乱caselist的顺序
+                caselist = this.caselist // 获取要打乱顺序的案例列表
 
-            caseorder = [] //顺序不能变
-            newcaselist = []
-            // 0-caselist.length-1 中选择caselist.length个不重复的数字
-            while (newcaselist.length < caselist.length) { // 循环直到新的列表中包含和原始列表相同数量的案例
-                let num = parseInt(Math.random() * (caselist.length)) // 生成一个随机数字，范围为 0 到 caselist.length-1
-                if (caseorder.indexOf(num) == -1) {
-                    caseorder.push(num)
-                    newcaselist.push(caselist[num])
+                caseorder = [] //顺序不能变
+                newcaselist = []
+                // 0-caselist.length-1 中选择caselist.length个不重复的数字
+                while (newcaselist.length < caselist.length) { // 循环直到新的列表中包含和原始列表相同数量的案例
+                    let num = parseInt(Math.random() * (caselist.length)) // 生成一个随机数字，范围为 0 到 caselist.length-1
+                    if (caseorder.indexOf(num) == -1) {
+                        caseorder.push(num)
+                        newcaselist.push(caselist[num])
+                    }
                 }
+                this.caselist = newcaselist // 将新的列表赋值给 this.caselist，完成打乱顺序的操作
+                //出现一个弹窗提示用户进入预训练阶段
+                this.loadJson(); //需要触发的函数
+
             }
-            this.caselist = newcaselist // 将新的列表赋值给 this.caselist，完成打乱顺序的操作
-            //出现一个弹窗提示用户进入预训练阶段
-            this.loadJson(); //需要触发的函数
+
         },
 
         methods: {
@@ -148,7 +139,7 @@
              * 初始化加载案例文件
              */
             loadJson: function () {
-                if(this.activeCase == 0) alert('*******视觉评估实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你认为的字母\n')
+                if(this.activeCase == 0) alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你认为的单个小写字母\n')
                 this.givenpercent=this.caselist[this.activeCase]["givenpercent"]; //指定的重叠比例
                 this.word=this.caselist[this.activeCase]["word"];
                 this.direction=this.caselist[this.activeCase]["direction"]; //方向1-8 依次为：从最右逆时针
@@ -174,7 +165,7 @@
                 //添加矩形块，oper为矩形块占被遮挡字母像素的百分比
                 var oper=this.liner_rect_overlap(octx,octx.canvas.width/2-this.max_wh[0]/2,octx.canvas.height/2+this.max_wh[1]/2,this.max_wh[0],this.max_wh[1],this.givenpercent,letterarr);
 
-                document.getElementById("myp").innerHTML= "指定的重叠比例为" + this.givenpercent;
+                document.getElementById("myp").innerHTML= "当前重叠比例：" + this.givenpercent;
 
                 this.loadForm(); //根据高度节点的数目动态加载表单
                 // this.initNetwork(svg, result, havePos);
@@ -231,7 +222,7 @@
                 divElement.classList.add('order') // 为该 div 元素添加一个名为 'order' 的 CSS 类
 
                 let labelElement = document.createElement('label') // 创建一个 label 元素
-                labelElement.innerHTML = '被遮挡字母是' +  ': ' //设置 label 的文本
+                labelElement.innerHTML = '视感字母' +  ': ' //设置 label 的文本
                 labelElement.classList.add('fontweight') // 为 label 添加一个名为 'fontweight' 的 CSS 类
 
                 let inputElement = document.createElement('input') // 创建一个 input 元素
@@ -251,7 +242,7 @@
                 let inputElements = document.querySelectorAll('.order input')
                 let inputElement = inputElements[0];
 
-                if(inputElement.value.length !== 1){
+                if(!(/^[a-z]$/.test(inputElement.value))){ //判断是不是单个字母
                     return false
                 }
                 this.caselist[this.activeCase]['input'] = inputElement.value
@@ -269,7 +260,7 @@
                 let isCorrecOrder = this.checkInputText()
                 // let isCorrectGap = this.checkInputRadio() //检查radio框中填写的信息是否符合要求
                 if (!isCorrecOrder) {
-                    alert('输入不合规')
+                    alert('请输入单个小写字母')
                     return;
                 }
                 let that = this;
@@ -290,6 +281,8 @@
                         let localCaselist = []
                         // 处理数据为csv的格式
                         let csvString = ""
+                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "耗时" + ',' + "是否正确"
+                        csvString += '\r\n'
                         casedata.map(item => {
                             let row = {
                                 'word': item.word,
