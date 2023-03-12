@@ -46,6 +46,7 @@
         el: "#container",
         data: {
             metric: null, //计算word的宽度和高度
+            max_wh:null, //a-z中的最大宽度和高度
             word: null,
             givenpercent: null, //指定的重叠比例
             direction: null, //方向1-8 依次为：从最右逆时针
@@ -120,10 +121,13 @@
             //     this.loadJson(this.caselist[this.activeCase]['name']); //需要触发的函数
             //
             // }
-
+            this.caselist = this.getData();//26*8*11
+            console.log(this.caselist);
             this.caseTotal = this.caselist.length
+
             //打乱caselist的顺序
             caselist = this.caselist // 获取要打乱顺序的案例列表
+
             caseorder = [] //顺序不能变
             newcaselist = []
             // 0-caselist.length-1 中选择caselist.length个不重复的数字
@@ -152,7 +156,7 @@
                 var c=document.getElementById("myCanvas");
                 var octx=c.getContext("2d");
                 octx.clearRect(0,0,200,100);
-                octx.font="12px Times New Roman";
+                octx.font="16px Times New Roman";
                 this.metric = this.getTextMetric(this.word); //计算this.word的宽度和高度
 
                 octx.fillText(this.word,octx.canvas.width/2-this.metric[0]/2,octx.canvas.height/2+this.metric[1]/2);
@@ -164,8 +168,11 @@
                 //将传入文本字符串转换为像素信息组成的数组
                 var letterarr=this.get_letter(this.word);
 
+                //获取a-z中最大的宽和高
+                this.max_wh=this.getMaxWH();
+
                 //添加矩形块，oper为矩形块占被遮挡字母像素的百分比
-                var oper=this.liner_rect_overlap(octx,octx.canvas.width/2-this.metric[0]/2,octx.canvas.height/2+this.metric[1]/2,this.metric[0],this.metric[1],this.givenpercent,letterarr);
+                var oper=this.liner_rect_overlap(octx,octx.canvas.width/2-this.max_wh[0]/2,octx.canvas.height/2+this.max_wh[1]/2,this.max_wh[0],this.max_wh[1],this.givenpercent,letterarr);
 
                 document.getElementById("myp").innerHTML= "指定的重叠比例为" + this.givenpercent;
 
@@ -360,7 +367,7 @@
                 offCanvas3.height=100;
                 var offContext3 = offCanvas3.getContext("2d");
                 var arrletter=[];
-                offContext3.font = '12px Times New Roman';
+                offContext3.font = '16px Times New Roman';
                 var xx=0;
                 for(var i=0;i<text.length;i++){
                     const charWidth = offContext3.measureText(text[i]).width;
@@ -425,7 +432,7 @@
                     function getTextMetric(text){
                         const canvas=document.createElement('canvas');
                         const context=canvas.getContext('2d');
-                        context.font='12px Times New Roman';
+                        context.font='16px Times New Roman';
                         var me2=context.measureText(text);
                         var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
                         var wordw=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
@@ -704,6 +711,42 @@
                 var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
                 var wordw=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
                 return [wordw,wordh];
+            },
+            //找到a~z中最大的宽和高作为遮挡用的矩形块的宽和高
+            getMaxWH: function(){
+                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+                var max_wh=[0,0];
+                for(let i=0; i<letterList.length; i++){
+                    var w_h=this.getTextMetric(letterList[i]);
+                    max_wh[0]=Math.max(max_wh[0],w_h[0]);
+                    max_wh[1]=Math.max(max_wh[1],w_h[1]);
+                }
+                return max_wh;
+            },
+            //获取26*8*11个数据
+            getData: function(){
+                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+                //生成11个随机等级
+                const cover_level=[0.01,0.11,0.21,0.31,0.41,0.51,0.61,0.71,0.81,0.91];
+                let letterArr = [];//存储JSON数据
+
+                for(let i=0;i<letterList.length;i++){
+                    for(let j=1;j<=8;j++){
+                        for(let k=0; k<11;k++){
+                            //临时对象
+                            let obj={ word: 'a', direction: 1, givenpercent: 0};
+                            obj.word=letterList[i];//定义字母
+                            obj.direction=j;//定义方向
+                            if(k==0){//设定为第0等级
+                                obj.givenpercent=0;
+                            }else{
+                                obj.givenpercent=Math.random() * 0.09 + cover_level[k-1];
+                            }
+                            letterArr.push(obj);//push的只是引用
+                        }
+                    }
+                }
+                return letterArr;
             },
         }
     })
