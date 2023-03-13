@@ -109,7 +109,7 @@
                 //跳转到注册页面
                 window.location.href = 'signup.html'
             } else {
-                // this.caselist = this.getData();//26*8*11
+                this.caselist = this.getData();//26*8*11
                 console.log(this.caselist);
                 this.caseTotal = this.caselist.length
 
@@ -146,6 +146,7 @@
 
                 var c=document.getElementById("myCanvas");
                 var octx=c.getContext("2d");
+                // 设置矩形填充颜色
                 octx.clearRect(0,0,200,100);
                 octx.font="16px Times New Roman";
                 this.metric = this.getTextMetric(this.word); //计算this.word的宽度和高度
@@ -445,6 +446,7 @@
                     console.log("----------开始模拟矩形块与word重叠");
                     //offContext.fillRect(10,0,20,20);
                     // offContext.fillStyle("ffffff");
+                    offContext.fillStyle = 'white';
                     if(temp3==1){
                         offContext.fillRect(startx+width,starty-height,rect_width,height);
                         var arr2=get_global(offContext);
