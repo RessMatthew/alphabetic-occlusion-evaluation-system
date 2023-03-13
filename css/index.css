@@ -53,6 +53,10 @@ form {
   left: 20px;
   color: #4060b2;
 }
+#_time {
+  position: absolute;
+  left: 20px;
+}
 
 .gap-container {
   margin: 0.5em 0;

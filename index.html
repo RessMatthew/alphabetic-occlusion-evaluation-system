@@ -28,7 +28,7 @@
             <form id="order-form">
                 <p v-cloak style="margin: 0;margin-top: 10px;color: #4060b2;font-weight: 500;">实验进度：{{activeCase+1}}/{{caseTotal}} </p>
             </form>
-            <div class="button" @click="changeCase()">下一步</div>
+            <div id="next" class="button" @click="changeCase()">下一步</div>
             <!-- <div class="button" @click="savePos()">保存节点位置</div> -->
         </section>
     </div>
@@ -95,6 +95,9 @@
          * 获取注册信息缓存
          */
         mounted: function () {
+            // 注册全局键盘事件
+            window.addEventListener("keydown", this.onKeyDown);
+
             //获取注册信息缓存
             this.username = localStorage.getItem('username');
             this.sex = localStorage.getItem('sex');
@@ -136,6 +139,28 @@
 
         methods: {
             /**
+             * 添加下一步快捷键
+             */
+            onKeyDown: function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault(); // 阻止浏览器默认行为
+                    this.changeCase()
+                }else if(event.key === "1") {
+                    event.preventDefault(); // 阻止浏览器默认行为
+                    let radio = document.querySelector('input[name="gap"][value="0"]');
+                    radio.checked = true;
+                }else if(event.key === "2") {
+                    event.preventDefault(); // 阻止浏览器默认行为
+                    let radio = document.querySelector('input[name="gap"][value="1"]');
+                    radio.checked = true;
+                }else if(event.key === "3"){
+                    event.preventDefault(); // 阻止浏览器默认行为
+                    let radio = document.querySelector('input[name="gap"][value="2"]');
+                    radio.checked = true;
+                }
+            },
+
+            /**
              * 初始化加载案例文件
              */
             loadJson: function () {
@@ -170,8 +195,13 @@
 
                 this.loadForm(); //根据高度节点的数目动态加载表单
                 // this.initNetwork(svg, result, havePos);
+
+                let inputElements = document.querySelectorAll('.order input')
+                let inputElement = inputElements[0];
+                inputElement.focus();
+
                 // alert("Ready?")
-                // this.initTimer(); //每个案例限时完成任务
+                this.initTimer(); //每个案例限时完成任务
 
                 //记录当前时间
                 this.startTime = Date.now();
@@ -184,6 +214,8 @@
             loadForm: function () {
                 let formElement = document.getElementById("order-form")
                 formElement.appendChild(this.generateDivOrder()) // 生成给视觉度排序的表单，表单内的input为text
+                formElement.appendChild(this.generateDivConfidence())
+
             },
 
             /**
@@ -191,15 +223,18 @@
              */
             initTimer: function () {
                 let that = this;
-                let timerCount = 5;
+                let timerCount = 3;
 
                 this.flash = setInterval(function () { //每1秒刷新一次
-                    document.getElementById("_time").innerHTML= '开始答题倒计时：'+ timerCount +'秒';
+                    document.getElementById("_time").innerHTML= '字母消失倒计时：'+ '<span style="color:red;">'+ timerCount + '<span/>' +'秒';
                     timerCount--;
 
                     //倒计时结束
                     if (timerCount === -1){
-
+                        var c=document.getElementById("myCanvas");
+                        var octx=c.getContext("2d");
+                        // 设置矩形填充颜色
+                        octx.clearRect(0,0,200,100);
                         clearInterval(that.flash);   //关闭刷新
                     }
                 }, 1000);
@@ -227,14 +262,57 @@
                 labelElement.classList.add('fontweight') // 为 label 添加一个名为 'fontweight' 的 CSS 类
 
                 let inputElement = document.createElement('input') // 创建一个 input 元素
+                inputElement.setAttribute("maxlength", "1");
                 inputElement.type = "text" // 将 input 元素的类型设置为 'text'
                 // inputElement.name = "node" + (i + 1).toString()
 
                 divElement.appendChild(labelElement)
                 divElement.appendChild(inputElement)
 
+
+
+
                 return divElement
             },
+            /**
+             * 生成选择确信程度的表单，表单内的input为radio
+             */
+            generateDivConfidence: function (){
+                let divElement = document.createElement('div')
+                divElement.classList.add('gap-container')
+
+                let h4Element = document.createElement('text')
+                h4Element.innerHTML = '确信程度：'
+                h4Element.classList.add('fontweight')
+                divElement.appendChild(h4Element)
+
+                //创建4个radio标签
+                for (let j = 0; j < 3; j++) {
+                    let divSubElement = document.createElement('div')
+                    divSubElement.style.display = 'inline-block'
+                    let inputElement = document.createElement('input')
+                    inputElement.type = "radio"
+                    inputElement.name = 'gap'
+                    inputElement.value = j.toString()
+                    let labelElement = document.createElement('label')
+                    switch (j) {
+                        case 0:
+                            labelElement.innerHTML = '有把握'
+                            break;
+                        case 1:
+                            labelElement.innerHTML = '不确定'
+                            break;
+                        case 2:
+                            labelElement.innerHTML = '没把握'
+                            break;
+                    }
+                    divSubElement.appendChild(inputElement)
+                    divSubElement.appendChild(labelElement)
+                    divElement.appendChild(divSubElement)
+                }
+                return divElement
+            },
+
 
             /**
              * 检查输入框中填写的信息是否符合要求
@@ -255,13 +333,46 @@
                 return true
             },
             /**
+             * 检查输入框中填写的信息是否符合要求
+             */
+            checkInputRadio: function () {
+                let inputRadioElements = document.querySelectorAll('.gap-container')
+                let inputRadioElement = inputRadioElements[0];
+                //获取radio的值，顺便检查name==“”的radio是否为空。
+                let gapNum = '';
+
+                let input = inputRadioElement.getElementsByTagName("input")
+                for (let g = 0; g < input.length; g++) {
+                    if (input[g].checked) {
+                        gapNum = input[g].value
+                    }
+                }
+                if (gapNum === '') {
+                    return false
+                }
+                switch (parseInt(gapNum)) {
+                    case 0:
+                        gapNum = '有把握'
+                        break;
+                    case 1:
+                        gapNum = '不确定'
+                        break;
+                    case 2:
+                        gapNum = '没把握'
+                        break;
+                }
+                this.caselist[this.activeCase]['confidence'] = gapNum
+
+                return true
+            },
+            /**
              * 用户点击下一步按钮后，更新画布中呈现的案例
              */
             changeCase: function () {
-                let isCorrecOrder = this.checkInputText()
-                // let isCorrectGap = this.checkInputRadio() //检查radio框中填写的信息是否符合要求
-                if (!isCorrecOrder) {
-                    alert('请输入单个小写字母')
+                let isCorrectOrder = this.checkInputText()
+                let isCorrectGap = this.checkInputRadio() //检查radio框中填写的信息是否符合要求
+                if (!isCorrectOrder || !isCorrectGap) {
+                    alert('请输入单个小写字母且选择确信程度')
                     return;
                 }
                 let that = this;
@@ -282,7 +393,7 @@
                         let localCaselist = []
                         // 处理数据为csv的格式
                         let csvString = ""
-                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "耗时" + ',' + "是否正确"
+                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
                         csvString += '\r\n'
                         casedata.map(item => {
                             let row = {
@@ -292,7 +403,7 @@
                             }
                             localCaselist.push(row) //caselist里面的案例顺序以答案为准
 
-                            csvString += item.word + ',' + item.direction + ',' + item.givenpercent + ',' + item.input + ',' + item.time + ',' + item.flag
+                            csvString += item.word + ',' + item.direction + ',' + item.givenpercent + ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
                             csvString += '\r\n'
                         })
                         //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
