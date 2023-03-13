@@ -701,7 +701,7 @@
             getTextMetric: function (text) {
                 const canvas=document.createElement('canvas');
                 const context=canvas.getContext('2d');
-                context.font='12px Times New Roman';
+                context.font='16px Times New Roman';
                 var me2=context.measureText(text);
                 var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
                 var wordw=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
