@@ -113,7 +113,7 @@
                 window.location.href = 'signup.html'
             } else {
                 this.caselist = this.getData();//26*8*11
-                console.log(this.caselist);
+                // console.log(this.caselist);
                 this.caseTotal = this.caselist.length
 
                 //打乱caselist的顺序
@@ -170,17 +170,17 @@
                 this.direction=this.caselist[this.activeCase]["direction"]; //方向1-8 依次为：从最右逆时针
 
                 var c=document.getElementById("myCanvas");
-                var octx=c.getContext("2d");
+                var octx=c.getContext('2d', { willReadFrequently: true });;
                 // 设置矩形填充颜色
                 octx.clearRect(0,0,200,100);
                 octx.font="16px Times New Roman";
                 this.metric = this.getTextMetric(this.word); //计算this.word的宽度和高度
 
                 octx.fillText(this.word,octx.canvas.width/2-this.metric[0]/2,octx.canvas.height/2+this.metric[1]/2);
-                console.log("原始画布的文字开始坐标为："+(octx.canvas.width/2-this.metric[0]/2)+",,,"+(octx.canvas.height/2+this.metric[1]/2));
-                console.log("字符高度为："+octx.canvas.height/2+"++++"+this.metric[1]/2);
+                // console.log("原始画布的文字开始坐标为："+(octx.canvas.width/2-this.metric[0]/2)+",,,"+(octx.canvas.height/2+this.metric[1]/2));
+                // console.log("字符高度为："+octx.canvas.height/2+"++++"+this.metric[1]/2);
                 var arr=this.get_global(octx); //获取已经被占用的像素坐标
-                console.log("文本占用像素的坐标为：" + arr);
+                // console.log("文本占用像素的坐标为：" + arr);
 
                 //将传入文本字符串转换为像素信息组成的数组
                 var letterarr=this.get_letter(this.word);
@@ -232,7 +232,7 @@
                     //倒计时结束
                     if (timerCount === -1){
                         var c=document.getElementById("myCanvas");
-                        var octx=c.getContext("2d");
+                        var octx=c.getContext('2d', { willReadFrequently: true });;
                         // 设置矩形填充颜色
                         octx.clearRect(0,0,200,100);
                         clearInterval(that.flash);   //关闭刷新
@@ -432,7 +432,7 @@
                     clearInterval(that.flash);   //关闭刷新
                     this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
                     // console.log((this.endTime - this.startTime)/1000)
-                    console.log("123123",this.caselist)
+                    // console.log("123123",this.caselist)
                     //再次询问
                     if (confirm("准备好进行下一个案例了吗？")) {
                         this.activeCase++;
@@ -470,21 +470,21 @@
                 var  offCanvas3 = document.createElement("canvas");//离屏canvas 通过代码创建出来的
                 offCanvas3.width=200;
                 offCanvas3.height=100;
-                var offContext3 = offCanvas3.getContext("2d");
+                var offContext3 = offCanvas3.getContext('2d', { willReadFrequently: true });;
                 var arrletter=[];
                 offContext3.font = '16px Times New Roman';
                 var xx=0;
                 for(var i=0;i<text.length;i++){
                     const charWidth = offContext3.measureText(text[i]).width;
-                    console.log("字符的宽度为："+charWidth);
+                    // console.log("字符的宽度为："+charWidth);
                     offContext3.fillText(text[i],offContext3.canvas.width/2-this.metric[0]/2+xx,offContext3.canvas.height/2+this.metric[1]/2);
-                    console.log("文字的左下角坐标为："+(offContext3.canvas.width/2-this.metric[0]/2+xx)+" ,,,"+(offContext3.canvas.height/2+this.metric[1]/2));
+                    // console.log("文字的左下角坐标为："+(offContext3.canvas.width/2-this.metric[0]/2+xx)+" ,,,"+(offContext3.canvas.height/2+this.metric[1]/2));
                     var arr4=this.get_global(offContext3);
                     arrletter.push(arr4);
                     xx+=charWidth;
                     offContext3.clearRect(0,0,200,100);
-                    console.log("字母"+text[i]+"占用的像素信息为：");
-                    console.log(arr4);
+                    // console.log("字母"+text[i]+"占用的像素信息为：");
+                    // console.log(arr4);
                 }
                 return arrletter;
              },
@@ -536,7 +536,7 @@
                     //计算文本的宽度和高度
                     function getTextMetric(text){
                         const canvas=document.createElement('canvas');
-                        const context=canvas.getContext('2d');
+                        const context=canvas.getContext('2d', { willReadFrequently: true });;
                         context.font='16px Times New Roman';
                         var me2=context.measureText(text);
                         var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
@@ -546,7 +546,7 @@
                     var offCanvas=document.createElement("canvas");
                     offCanvas.width=200;
                     offCanvas.height=100;
-                    var offContext = offCanvas.getContext("2d");
+                    var offContext = offCanvas.getContext('2d', { willReadFrequently: true });;
 
                     //指定矩形块的宽度！！！！！！！
                     var m = getTextMetric('m')
@@ -554,24 +554,24 @@
                     //var arrletter=get_letter(word);
                     //const average = arr => arr.reduce((acc, val) => acc + val, 0) / arr.length;
                     //var temp3=1;
-                    console.log("----------开始模拟矩形块与word重叠");
+                    // console.log("----------开始模拟矩形块与word重叠");
                     //offContext.fillRect(10,0,20,20);
                     // offContext.fillStyle("ffffff");
                     offContext.fillStyle = 'white';
                     if(temp3==1){
                         offContext.fillRect(startx+width,starty-height,rect_width,height);
                         var arr2=get_global(offContext);
-                        console.log("矩形块的像素信息为：");
-                        console.log(arr2);
+                        // console.log("矩形块的像素信息为：");
+                        // console.log(arr2);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         //  var percent1=average(arrpercent);
                         var x=0;
                         while(percent1<percent){
@@ -585,7 +585,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
 
                         }
                         ctx.drawImage(offCanvas,0,0);
@@ -594,13 +594,13 @@
                         var arr2=get_global(offContext);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         var x=0;
                         while(percent1<percent){
 
@@ -615,7 +615,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
                         }
                         ctx.drawImage(offCanvas,0,0);
 
@@ -625,13 +625,13 @@
                         var arr2=get_global(offContext);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         var x=0;
                         while(percent1<percent){
                             x+=1;
@@ -644,7 +644,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
                         }
                         ctx.drawImage(offCanvas,0,0);
                         // ctx.fillRect(startx+width/2-rect_width/2,starty-height-height,rect_width,height);
@@ -654,13 +654,13 @@
                         var arr2=get_global(offContext);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         var x=0;
                         while(percent1<percent){
 
@@ -674,7 +674,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
                         }
 
                         ctx.drawImage(offCanvas,0,0);
@@ -685,13 +685,13 @@
                         var arr2=get_global(offContext);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         var x=0;
                         while(percent1<percent){
 
@@ -705,7 +705,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
                         }
                         ctx.drawImage(offCanvas,0,0);
                         //ctx.fillRect(startx-rect_width,starty,rect_width,height);
@@ -717,13 +717,13 @@
                         var arr2=get_global(offContext);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         var x=0;
                         while(percent1<percent){
                             x+=1;
@@ -736,7 +736,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
                         }
                         ctx.drawImage(offCanvas,0,0);
                         //ctx.fillRect(startx-rect_width,starty-height-height,rect_width,height);
@@ -747,13 +747,13 @@
                         var arr2=get_global(offContext);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         var x=0;
                         while(percent1<percent){
                             x+=1;
@@ -766,7 +766,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
                         }
                         ctx.drawImage(offCanvas,0,0);
                         //ctx.fillRect(startx+width/2-rect_width/2,starty,rect_width,height);
@@ -777,13 +777,13 @@
                         var arr2=get_global(offContext);
                         var arrpercent=[];
                         for(var k=0;k<arrletter.length;k++){
-                            console.log("第"+k+"个字母的像素信息为：");
-                            console.log(arrletter[k]);
+                            // console.log("第"+k+"个字母的像素信息为：");
+                            // console.log(arrletter[k]);
 
                             arrpercent.push(get_change2(arrletter[k],arr2));
                         }
                         var percent1=avg(arrpercent);
-                        console.log("最初的百分比为："+percent1);
+                        // console.log("最初的百分比为："+percent1);
                         var x=0;
                         while(percent1<percent){
 
@@ -797,7 +797,7 @@
                                 arrpercent.push(get_change2(arrletter[k],arr2));
                             }
                             var percent1=avg(arrpercent);
-                            console.log("百分比为："+percent1);
+                            // console.log("百分比为："+percent1);
                         }
                         ctx.drawImage(offCanvas,0,0);
                         // ctx.fillRect(startx+width,starty,rect_width,height);
@@ -811,7 +811,7 @@
             //计算文本的宽度和高度
             getTextMetric: function (text) {
                 const canvas=document.createElement('canvas');
-                const context=canvas.getContext('2d');
+                const context=canvas.getContext('2d', { willReadFrequently: true });;
                 context.font='16px Times New Roman';
                 var me2=context.measureText(text);
                 var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
