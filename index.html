@@ -379,7 +379,65 @@
                     return;
                 }
                 let that = this;
-                if (this.activeCase + 1 >= this.caselist.length) {
+                if((this.activeCase + 1)%30 ===0 ){
+                    this.endTime = Date.now();
+                    clearInterval(that.flash);   //关闭刷新
+                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
+                    if (confirm("保存当前信息")) {
+                        //保存信息
+                        let casedata = this.caselist.slice(0, this.activeCase);
+
+                        let localCaselist = []
+                        // 处理数据为csv的格式
+                        let csvString = ""
+                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
+                        csvString += '\r\n'
+                        casedata.map(item => {
+                            let row = {
+                                'word': item.word,
+                                'direction': item.direction,
+                                'givenpercent': item.givenpercent,
+                            }
+                            localCaselist.push(row) //caselist里面的案例顺序以答案为准
+
+                            csvString += item.word + ',' + item.direction + ',' + item.givenpercent + ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
+                            csvString += '\r\n'
+                        })
+                        //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
+                        //可以通过JSON对象提供的parse和stringify将其他数据类型转化成字符串，再存储到storage中
+                        let str = JSON.stringify(localCaselist);
+                        localStorage.setItem("localCaselist", str);
+
+                        // 保存为csv文件并添加下载按钮
+                        csvString = "data:application/csv," + encodeURIComponent(csvString);
+                        let link = document.createElement('a');
+                        link.href = csvString;
+                        //对下载的文件命名
+                        link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
+                            "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
+                                .figureStudy + "_" + this.analysisStudy + ".csv";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                }
+                    //进入下一案例，则结束时间
+                    this.endTime = Date.now();
+                    clearInterval(that.flash);   //关闭刷新
+                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
+                    // console.log((this.endTime - this.startTime)/1000)
+                    // console.log("123123",this.caselist)
+                    //再次询问
+                    if (confirm("准备好进行下一个案例了吗？")) {
+                        this.activeCase++;
+                        d3.select("#mainsvg").selectAll("g").remove();
+                        // d3.select("#order-form div").remove();
+                        $("#order-form div").remove();
+                        //更新进度条 分为两个环节
+                        this.updateProgress(this.activeCase, this.caselist.length )
+                        this.loadJson();
+                    }
+                }
+                else if (this.activeCase + 1 >= this.caselist.length) {
                     // console.log("已结束")
                     //结束实验，则结束最后一个案例时间
                     this.endTime = Date.now();
@@ -429,7 +487,8 @@
                         //跳转到反馈页面
                         window.location.href = 'end.html'
                     }
-                } else {
+                }
+                else {
                     //进入下一案例，则结束时间
                     this.endTime = Date.now();
                     clearInterval(that.flash);   //关闭刷新

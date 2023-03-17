@@ -2,3 +2,6 @@
 
 /.idea
 /.idea/vcs.xml
+/package.json
+/package-lock.json
+/webpack.config.js
