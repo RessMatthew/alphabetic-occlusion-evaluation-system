@@ -216,7 +216,7 @@
             loadForm: function () {
                 let formElement = document.getElementById("order-form")
                 formElement.appendChild(this.generateDivOrder()) // 生成给视觉度排序的表单，表单内的input为text
-                formElement.appendChild(this.generateDivConfidence())
+                // formElement.appendChild(this.generateDivConfidence())
 
             },
 
@@ -264,6 +264,7 @@
                 labelElement.classList.add('fontweight') // 为 label 添加一个名为 'fontweight' 的 CSS 类
 
                 let inputElement = document.createElement('input') // 创建一个 input 元素
+                inputElement.setAttribute('value', 'a');
                 inputElement.setAttribute("maxlength", "1");
                 inputElement.type = "text" // 将 input 元素的类型设置为 'text'
                 // inputElement.name = "node" + (i + 1).toString()
@@ -373,7 +374,8 @@
              */
             changeCase: function () {
                 let isCorrectOrder = this.checkInputText()
-                let isCorrectGap = this.checkInputRadio() //检查radio框中填写的信息是否符合要求
+                // let isCorrectGap = this.checkInputRadio() //检查radio框中填写的信息是否符合要求
+                let isCorrectGap = true
                 if (!isCorrectOrder || !isCorrectGap) {
                     alert('请输入单个小写字母且选择确信程度')
                     return;
