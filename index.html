@@ -130,6 +130,16 @@
                     }
                 }
                 this.caselist = newcaselist // 将新的列表赋值给 this.caselist，完成打乱顺序的操作
+
+                this.caselist[0] = { word: 'q', direction: 1, givenpercent: 0.51}
+                this.caselist[1] = { word: 'q', direction: 2, givenpercent: 0.51}
+                this.caselist[2] = { word: 'q', direction: 3, givenpercent: 0.51}
+                this.caselist[3] = { word: 'q', direction: 4, givenpercent: 0.51}
+                this.caselist[4] = { word: 'q', direction: 5, givenpercent: 0.51}
+                this.caselist[5] = { word: 'q', direction: 6, givenpercent: 0.51}
+                this.caselist[6] = { word: 'q', direction: 7, givenpercent: 0.51}
+                this.caselist[7] = { word: 'q', direction: 8, givenpercent: 0.51}
+
                 //出现一个弹窗提示用户进入预训练阶段
                 this.loadJson(); //需要触发的函数
 
