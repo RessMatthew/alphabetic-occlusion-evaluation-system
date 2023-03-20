@@ -29,12 +29,12 @@
                 <p v-cloak style="margin: 0;margin-top: 10px;color: #4060b2;font-weight: 500;">实验进度：{{activeCase+1}}/{{caseTotal}} </p>
                 <div class="order">
                     <label class="font-weight">视感字母：</label>
-                    <input id='inputLetter' value="a" maxlength="1" type="text" >
+                    <input id='inputLetter' maxlength="1" type="text" >
                 </div>
                 <div class="gap-container">
                     <label class="font-weight">确信程度：</label>
                     <div style="display:inline-block;">
-                        <input type="radio" name="radio-option" value="0" id="option-0" checked>
+                        <input type="radio" name="radio-option" value="0" id="option-0">
                         <label>有把握</label>
                     </div>
                     <div style="display:inline-block;">
@@ -197,8 +197,13 @@
              * 初始化加载案例文件
              */
             loadJson: function () {
-                // if(this.activeCase === 0)
-                //     alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你的第一视感字母\n')
+                if(this.activeCase === 0)
+                    alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你的第一视感字母\n')
+
+                this.inputElement.value = '';
+                let radio = document.getElementById('option-0');
+                radio.checked = true;
+                radio.checked = false;
 
                 this.givenPercent=this.caseList[this.activeCase]['givenPercent'];   // 当前重叠比例
                 this.letter=this.caseList[this.activeCase]['letter'];   // 当前字母
@@ -223,7 +228,8 @@
                 this.liner_rect_overlap(ctx,start_x,start_y,width,height,
                     this.rect_width,this.rect_height,this.direction,this.givenPercent,letter_pixel);
 
-                document.getElementById("myp").innerHTML = "当前字母像素重叠比例：" + this.givenPercent;
+                document.getElementById("myp").innerHTML = "当前字母像素重叠比例：" +
+                    this.givenPercent + "字母-方向:" + this.letter + '-' + this.direction;
 
                 this.initTimer(); //每个案例限时完成任务
 
@@ -453,7 +459,8 @@
             /**
              * 求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
              */
-            liner_rect_overlap: function (ctx,start_x,start_y,width,height,rect_width,rect_height,direction,percent,letter_pixel){
+            liner_rect_overlap: function (ctx,start_x,start_y,width,height,
+                                          rect_width,rect_height,direction,percent,letter_pixel){
                 //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
                 let offCanvas=document.createElement("canvas");
                 offCanvas.width=200;
