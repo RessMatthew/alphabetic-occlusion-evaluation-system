@@ -27,9 +27,27 @@
         <section class="form-content">
             <form id="order-form">
                 <p v-cloak style="margin: 0;margin-top: 10px;color: #4060b2;font-weight: 500;">实验进度：{{activeCase+1}}/{{caseTotal}} </p>
+                <div class="order">
+                    <label class="font-weight">视感字母：</label>
+                    <input id='inputLetter' value="a" maxlength="1" type="text" >
+                </div>
+                <div class="gap-container">
+                    <label class="font-weight">确信程度：</label>
+                    <div style="display:inline-block;">
+                        <input type="radio" name="radio-option" value="0" id="option-0" checked>
+                        <label>有把握</label>
+                    </div>
+                    <div style="display:inline-block;">
+                        <input type="radio" name="radio-option" value="1" id="option-1">
+                        <label>不确定</label>
+                    </div>
+                    <div style="display:inline-block;">
+                        <input type="radio" name="radio-option" value="2" id="option-2">
+                        <label>没把握</label>
+                    </div>
+                </div>
             </form>
             <div id="next" class="button" @click="changeCase()">下一步</div>
-            <!-- <div class="button" @click="savePos()">保存节点位置</div> -->
         </section>
     </div>
     <p id="myp"></p>
@@ -39,16 +57,48 @@
 <script src="js/jquery-3.4.1.min.js"></script>
 <script src="js/FileSaver.js"></script>
 <script>
-    var app = new Vue({
+    let app = new Vue({
         el: "#container",
         data: {
-            metric: null, //计算word的宽度和高度
-            max_wh:null, //a-z中的最大宽度和高度
-            word: null,
-            givenpercent: null, //指定的重叠比例
-            direction: null, //方向1-8 依次为：从最右逆时针
+            letter: null, //当前字母
+            givenPercent: null, //当前重叠比例
+            direction: null, //当前遮挡方向（1-8依次为：从最右逆时针）
 
-            caseTotal: null,
+            rect_width: null, //26字母中最大的宽度
+            rect_height: null, //26字母中最大的高度
+
+            caseList: [
+                {
+                    letter: 'a',
+                    givenPercent: 0.1,
+                    direction: 1,
+                },
+                {
+                    letter: 'b',
+                    givenPercent: 0.1,
+                    direction: 3,
+                },
+                {
+                    letter: 'b',
+                    givenPercent: 0.2,
+                    direction:5,
+                },
+                {
+                    letter: 'f',
+                    givenPercent: 0.7,
+                    direction:6,
+                },
+                {
+                    letter: 'z',
+                    givenPercent: 0.6,
+                    direction:2,
+                },
+            ], //案例列表
+            caseTotal: null, //案例总数
+            activeCase: 0, //当前案例的下标
+            flash: null, //计时控件
+            startTime: null, //案例开始时间
+            endTime: null, //案例结束时间
 
             username: null, //姓名
             sex: null, //性别
@@ -58,47 +108,27 @@
             dataStudy: null, //是否学过数据结构
             figureStudy: null, //是否学过图论
             analysisStudy: null, //是否做过图数据分析相关工作
-            activeCase: 0,
-            flash: null, //计时器
-            startTime: null, //案例开始时间
-            endTime: null, //案例结束时间
 
-            caselist: [
-                {
-                    word: 'a',
-                    givenpercent: 0.1,
-                    direction: 1,
-                },
-                {
-                    word: 'b',
-                    givenpercent: 0.1,
-                    direction: 3,
-                },
-                {
-                    word: 'b',
-                    givenpercent: 0.2,
-                    direction:5,
-                },
-                {
-                    word: 'f',
-                    givenpercent: 0.7,
-                    direction:6,
-                },
-                {
-                    word: 'z',
-                    givenpercent: 0.6,
-                    direction:2,
-                },
-            ],
+            myCanvas_dom: null,
+            inputLetter_dom: null,
+            inputRadios_dom: null,
         },
+
         /**
-         * 获取注册信息缓存
+         * 在组件挂载到 DOM 上后被调用
          */
         mounted: function () {
             // 注册全局键盘事件
             window.addEventListener("keydown", this.onKeyDown);
 
-            //获取注册信息缓存
+            this.myCanvas_dom = document.getElementById("myCanvas");
+            this.inputElement = document.getElementById('inputLetter');
+            // this.time_dom = document.getElementById("_time")
+
+            // 获取26字母中最大的宽度和高度
+            [this.rect_width, this.rect_height] = this.getMaxWH()
+
+            // 获取注册信息缓存
             this.username = localStorage.getItem('username');
             this.sex = localStorage.getItem('sex');
             this.age = localStorage.getItem('age');
@@ -108,32 +138,36 @@
             this.figureStudy = localStorage.getItem('figureStudy');
             this.analysisStudy = localStorage.getItem('analysisStudy');
 
-            if (this.username == null || this.major == null || this.analysisStudy == null) {
-                //跳转到注册页面
-                window.location.href = 'signup.html'
-            } else {
-                this.caselist = this.getData();//26*8*11
-                // console.log(this.caselist);
-                this.caseTotal = this.caselist.length
+            // if (this.username == null || this.major == null || this.analysisStudy == null) {
+            //     // 无注册信息缓存
+            //     window.location.href = 'signup.html' // 跳转到注册页面
+            // }
+            // else {
+                // 有注册信息缓存
+                this.caseList = this.getData(); // 获取案例列表
+                // console.log(this.caseList)
+                this.caseTotal = this.caseList.length // 获取案例总数
 
-                //打乱caselist的顺序
-                caselist = this.caselist // 获取要打乱顺序的案例列表
+                let caseOrder = [] // 定义一个空数组用于存储已经选过的数字的下标
+                let newCaseList = [] // 定义一个空数组用于存储生成的新数组
+                // 0-caseList.length-1 中选择caseList.length个不重复的数字
+                // 循环直到新的列表中包含和原始列表相同数量的案例
+                while (newCaseList.length < this.caseList.length) {
+                    // 生成一个随机数字，范围为 0 到 caseList.length-1
+                    // parseInt不能少
+                    let num = parseInt(Math.random() * (this.caseList.length))
 
-                caseorder = [] //顺序不能变
-                newcaselist = []
-                // 0-caselist.length-1 中选择caselist.length个不重复的数字
-                while (newcaselist.length < caselist.length) { // 循环直到新的列表中包含和原始列表相同数量的案例
-                    let num = parseInt(Math.random() * (caselist.length)) // 生成一个随机数字，范围为 0 到 caselist.length-1
-                    if (caseorder.indexOf(num) == -1) {
-                        caseorder.push(num)
-                        newcaselist.push(caselist[num])
+                    // 如果该数字的下标没有被选过，则将其存入 caseOrder 数组中，
+                    // 并将该下标对应的元素加入 newCaseList 数组中。
+                    if (caseOrder.indexOf(num) === -1) {
+                        caseOrder.push(num)
+                        newCaseList.push(this.caseList[num])
                     }
                 }
-                this.caselist = newcaselist // 将新的列表赋值给 this.caselist，完成打乱顺序的操作
-                //出现一个弹窗提示用户进入预训练阶段
-                this.loadJson(); //需要触发的函数
+                this.caseList = newCaseList // 将新的列表赋值给 this.caseList，完成打乱顺序的操作
 
-            }
+                this.loadJson(); //加载案例文件
+            // }
 
         },
 
@@ -146,86 +180,66 @@
                     event.preventDefault(); // 阻止浏览器默认行为
                     this.changeCase()
                 }else if(event.key === "1") {
-                    event.preventDefault(); // 阻止浏览器默认行为
-                    let radio = document.querySelector('input[name="gap"][value="0"]');
+                    event.preventDefault();
+                    let radio = document.getElementById('option-0');
                     radio.checked = true;
                 }else if(event.key === "2") {
-                    event.preventDefault(); // 阻止浏览器默认行为
-                    let radio = document.querySelector('input[name="gap"][value="1"]');
+                    event.preventDefault();
+                    let radio = document.getElementById('option-1');
                     radio.checked = true;
                 }else if(event.key === "3"){
-                    event.preventDefault(); // 阻止浏览器默认行为
-                    let radio = document.querySelector('input[name="gap"][value="2"]');
+                    event.preventDefault();
+                    let radio = document.getElementById('option-2');
                     radio.checked = true;
                 }
             },
-
             /**
              * 初始化加载案例文件
              */
             loadJson: function () {
-                if(this.activeCase == 0) alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你的第一视感字母\n')
-                this.givenpercent=this.caselist[this.activeCase]["givenpercent"]; //指定的重叠比例
-                this.word=this.caselist[this.activeCase]["word"];
-                this.direction=this.caselist[this.activeCase]["direction"]; //方向1-8 依次为：从最右逆时针
+                // if(this.activeCase === 0)
+                //     alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你的第一视感字母\n')
 
-                var c=document.getElementById("myCanvas");
-                var octx=c.getContext('2d', { willReadFrequently: true });;
-                // 设置矩形填充颜色
-                octx.clearRect(0,0,200,100);
-                octx.font="16px Times New Roman";
-                this.metric = this.getTextMetric(this.word); //计算this.word的宽度和高度
+                this.givenPercent=this.caseList[this.activeCase]['givenPercent'];   // 当前重叠比例
+                this.letter=this.caseList[this.activeCase]['letter'];   // 当前字母
+                this.direction=this.caseList[this.activeCase]['direction']; //  当前遮挡方向
 
-                octx.fillText(this.word,octx.canvas.width/2-this.metric[0]/2,octx.canvas.height/2+this.metric[1]/2);
-                // console.log("原始画布的文字开始坐标为："+(octx.canvas.width/2-this.metric[0]/2)+",,,"+(octx.canvas.height/2+this.metric[1]/2));
-                // console.log("字符高度为："+octx.canvas.height/2+"++++"+this.metric[1]/2);
-                var arr=this.get_global(octx); //获取已经被占用的像素坐标
-                // console.log("文本占用像素的坐标为：" + arr);
+                // 创建了一个CanvasRenderingContext2D对象的实例
+                let ctx = this.myCanvas_dom.getContext('2d', { willReadFrequently: true });
+                // 清除画布左上角为原点、长宽分别为 200 像素和 100 像素的矩形区域
+                ctx.clearRect(0,0,200,100);
 
-                //将传入文本字符串转换为像素信息组成的数组
-                var letterarr=this.get_letter(this.word);
+                // 获取字母的宽度和高度
+                let letter_metric = this.getTextMetric(this.letter);
+                let [width,height] = [letter_metric[0],letter_metric[1]];
+                let [start_x,start_y] = [ctx.canvas.width/2-width/2,ctx.canvas.height/2+height/2];
 
-                //获取a-z中最大的宽和高
-                this.max_wh=this.getMaxWH();
+                // 绘制字母
+                ctx.font = "16px Times New Roman";
+                ctx.fillText(this.letter,start_x,start_y);
 
-                //添加矩形块，oper为矩形块占被遮挡字母像素的百分比
-                var oper=this.liner_rect_overlap(octx,octx.canvas.width/2-this.max_wh[0]/2,octx.canvas.height/2+this.max_wh[1]/2,this.max_wh[0],this.max_wh[1],this.givenpercent,letterarr);
+                // 绘制遮挡矩形
+                let letter_pixel = this.get_global(ctx); // 获取已经被占用的像素坐标
+                this.liner_rect_overlap(ctx,start_x,start_y,width,height,
+                    this.rect_width,this.rect_height,this.direction,this.givenPercent,letter_pixel);
 
-                // alert("Ready?")
+                document.getElementById("myp").innerHTML = "当前字母像素重叠比例：" + this.givenPercent;
+
                 this.initTimer(); //每个案例限时完成任务
 
-                //记录当前时间
                 this.startTime = Date.now();
-                // });
 
-                // document.getElementById("myp").innerHTML= "当前字母像素重叠比例：" + this.givenpercent;
-
-                this.loadForm(); //根据高度节点的数目动态加载表单
-                // this.initNetwork(svg, result, havePos);
-
-                let inputElements = document.querySelectorAll('.order input')
-                let inputElement = inputElements[0];
-                inputElement.focus();
-
-
-
+                // 聚焦输入框
+                // let inputElements = document.querySelectorAll('.order input')
+                // let inputElement = inputElements[0];
+                // inputElement.focus();
             },
-            /**
-             * 页面初始化的时候根据高度节点的数目动态加载表单
-             */
-            loadForm: function () {
-                let formElement = document.getElementById("order-form")
-                formElement.appendChild(this.generateDivOrder()) // 生成给视觉度排序的表单，表单内的input为text
-                formElement.appendChild(this.generateDivConfidence())
-
-            },
-
             /**
              * 每个案例限制完成时间，初始化计时器函数
              */
             initTimer: function () {
                 let that = this;
-                let timerCount = 5;
+                let timerCount = 5; //每个案例限制五秒时间
 
                 this.flash = setInterval(function () { //每1秒刷新一次
                     document.getElementById("_time").innerHTML= '字母消失倒计时：'+ '<span style="color:red;">'+ timerCount + '<span/>' +'秒';
@@ -233,104 +247,25 @@
 
                     //倒计时结束
                     if (timerCount === -1){
-                        var c=document.getElementById("myCanvas");
-                        var octx=c.getContext('2d', { willReadFrequently: true });;
-                        // 设置矩形填充颜色
-                        octx.clearRect(0,0,200,100);
-                        clearInterval(that.flash);   //关闭刷新
+                        let ctx = that.myCanvas_dom.getContext('2d', { willReadFrequently: true });
+                        ctx.clearRect(0,0,200,100); // 清除字母
+                        clearInterval(that.flash);   // 关闭刷新
                     }
                 }, 1000);
             },
 
             /**
-             * 更新进度条
-             * @param {int} current 当前进度
-             * @param {int} target 总共进度
-             */
-            updateProgress: function (current, target) {
-                let percent = parseInt((current / target) * 100)
-                progressBar = document.querySelector('.progress')
-                progressBar.style.width = percent + '%'
-            },
-            /**
-             * 生成给视觉度排序的表单，表单内的input为text
-             */
-            generateDivOrder() {
-                let divElement = document.createElement('div') // 创建一个 div 元素
-                divElement.classList.add('order') // 为该 div 元素添加一个名为 'order' 的 CSS 类
-
-                let labelElement = document.createElement('label') // 创建一个 label 元素
-                labelElement.innerHTML = '视感字母' +  ': ' //设置 label 的文本
-                labelElement.classList.add('fontweight') // 为 label 添加一个名为 'fontweight' 的 CSS 类
-
-                let inputElement = document.createElement('input') // 创建一个 input 元素
-                inputElement.setAttribute("maxlength", "1");
-                inputElement.type = "text" // 将 input 元素的类型设置为 'text'
-                // inputElement.name = "node" + (i + 1).toString()
-
-                divElement.appendChild(labelElement)
-                divElement.appendChild(inputElement)
-
-
-
-
-                return divElement
-            },
-            /**
-             * 生成选择确信程度的表单，表单内的input为radio
-             */
-            generateDivConfidence: function (){
-                let divElement = document.createElement('div')
-                divElement.classList.add('gap-container')
-
-                let h4Element = document.createElement('text')
-                h4Element.innerHTML = '确信程度：'
-                h4Element.classList.add('fontweight')
-                divElement.appendChild(h4Element)
-
-                //创建4个radio标签
-                for (let j = 0; j < 3; j++) {
-                    let divSubElement = document.createElement('div')
-                    divSubElement.style.display = 'inline-block'
-                    let inputElement = document.createElement('input')
-                    inputElement.type = "radio"
-                    inputElement.name = 'gap'
-                    inputElement.value = j.toString()
-                    let labelElement = document.createElement('label')
-                    switch (j) {
-                        case 0:
-                            labelElement.innerHTML = '有把握'
-                            break;
-                        case 1:
-                            labelElement.innerHTML = '不确定'
-                            break;
-                        case 2:
-                            labelElement.innerHTML = '没把握'
-                            break;
-                    }
-                    divSubElement.appendChild(inputElement)
-                    divSubElement.appendChild(labelElement)
-                    divElement.appendChild(divSubElement)
-                }
-                return divElement
-            },
-
-
-            /**
              * 检查输入框中填写的信息是否符合要求
              */
             checkInputText: function () {
-                let inputElements = document.querySelectorAll('.order input')
-                let inputElement = inputElements[0];
-
-                if(!(/^[a-z]$/.test(inputElement.value))){ //判断是不是单个字母
+                if(!(/^[a-z]$/.test(this.inputElement.value))){ //判断是不是单个字母
                     return false
                 }
-                this.caselist[this.activeCase]['input'] = inputElement.value
-                if(inputElement.value === this.caselist[this.activeCase]['word']){
-                    this.caselist[this.activeCase]['flag'] = 'true'
+                this.caseList[this.activeCase]['input'] = this.inputElement.value
+                if(this.inputElement.value === this.caseList[this.activeCase]['letter']){
+                    this.caseList[this.activeCase]['flag'] = 'true'
                 }else{
-                    this.caselist[this.activeCase]['flag'] = 'false'
+                    this.caseList[this.activeCase]['flag'] = 'false'
                 }
                 return true
             },
@@ -338,33 +273,18 @@
              * 检查输入框中填写的信息是否符合要求
              */
             checkInputRadio: function () {
-                let inputRadioElements = document.querySelectorAll('.gap-container')
-                let inputRadioElement = inputRadioElements[0];
-                //获取radio的值，顺便检查name==“”的radio是否为空。
-                let gapNum = '';
-
-                let input = inputRadioElement.getElementsByTagName("input")
-                for (let g = 0; g < input.length; g++) {
-                    if (input[g].checked) {
-                        gapNum = input[g].value
+                let inputRadios = document.getElementsByName("radio-option")
+                let confidence;
+                for (let g = 0; g < inputRadios.length; g++) {
+                    if (inputRadios[g].checked) {
+                        confidence = inputRadios[g].value
                     }
                 }
-                if (gapNum === '') {
+                if (confidence === undefined) {
                     return false
                 }
-                gapNum = parseInt(gapNum) + 1
-                // switch (parseInt(gapNum)) {
-                //     case 0:
-                //         gapNum = '有把握'
-                //         break;
-                //     case 1:
-                //         gapNum = '不确定'
-                //         break;
-                //     case 2:
-                //         gapNum = '没把握'
-                //         break;
-                // }
-                this.caselist[this.activeCase]['confidence'] = gapNum
+                confidence = parseInt(confidence) + 1
+                this.caseList[this.activeCase]['confidence'] = confidence
 
                 return true
             },
@@ -379,92 +299,85 @@
                     return;
                 }
                 let that = this;
-                if((this.activeCase + 1)%30 ===0 ){
-                    this.endTime = Date.now();
-                    clearInterval(that.flash);   //关闭刷新
-                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
-                    if (confirm("保存当前信息")) {
-                        //保存信息
-                        let casedata = this.caselist.slice(0, this.activeCase);
-
-                        let localCaselist = []
-                        // 处理数据为csv的格式
-                        let csvString = ""
-                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
-                        csvString += '\r\n'
-                        casedata.map(item => {
-                            let row = {
-                                'word': item.word,
-                                'direction': item.direction,
-                                'givenpercent': item.givenpercent,
-                            }
-                            localCaselist.push(row) //caselist里面的案例顺序以答案为准
-
-                            csvString += item.word + ',' + item.direction + ',' + item.givenpercent + ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
-                            csvString += '\r\n'
-                        })
-                        //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
-                        //可以通过JSON对象提供的parse和stringify将其他数据类型转化成字符串，再存储到storage中
-                        let str = JSON.stringify(localCaselist);
-                        localStorage.setItem("localCaselist", str);
-
-                        // 保存为csv文件并添加下载按钮
-                        csvString = "data:application/csv," + encodeURIComponent(csvString);
-                        let link = document.createElement('a');
-                        link.href = csvString;
-                        //对下载的文件命名
-                        link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
-                            "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
-                                .figureStudy + "_" + this.analysisStudy + ".csv";
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                }
-                    //进入下一案例，则结束时间
-                    this.endTime = Date.now();
-                    clearInterval(that.flash);   //关闭刷新
-                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
-                    // console.log((this.endTime - this.startTime)/1000)
-                    // console.log("123123",this.caselist)
-                    //再次询问
-                    if (confirm("准备好进行下一个案例了吗？")) {
-                        this.activeCase++;
-                        d3.select("#mainsvg").selectAll("g").remove();
-                        // d3.select("#order-form div").remove();
-                        $("#order-form div").remove();
-                        //更新进度条 分为两个环节
-                        this.updateProgress(this.activeCase, this.caselist.length )
-                        this.loadJson();
-                    }
-                }
-                else if (this.activeCase + 1 >= this.caselist.length) {
-                    // console.log("已结束")
+                // if ((this.activeCase + 1) % 30 ===0 ){
+                //     this.endTime = Date.now();
+                //     clearInterval(that.flash);   //关闭刷新
+                //     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
+                //     if (confirm("保存当前信息")) {
+                //         //保存信息
+                //         let casedata = this.caseList.slice(0, this.activeCase);
+                //
+                //         let localCaselist = []
+                //         // 处理数据为csv的格式
+                //         let csvString = ""
+                //         csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
+                //         csvString += '\r\n'
+                //         casedata.map(item => {
+                //             let row = {
+                //                 'letter': item.letter,
+                //                 'direction': item.direction,
+                //                 'givenPercent': item.givenPercent,
+                //             }
+                //             localCaselist.push(row) //caseList里面的案例顺序以答案为准
+                //
+                //             csvString += item.letter + ',' + item.direction + ',' + item.givenPercent + ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
+                //             csvString += '\r\n'
+                //         })
+                //         //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
+                //         //可以通过JSON对象提供的parse和stringify将其他数据类型转化成字符串，再存储到storage中
+                //         let str = JSON.stringify(localCaselist);
+                //         localStorage.setItem("localCaselist", str);
+                //
+                //         // 保存为csv文件并添加下载按钮
+                //         csvString = "data:application/csv," + encodeURIComponent(csvString);
+                //         let link = document.createElement('a');
+                //         link.href = csvString;
+                //         //对下载的文件命名
+                //         link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
+                //             "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
+                //                 .figureStudy + "_" + this.analysisStudy + ".csv";
+                //         document.body.appendChild(link);
+                //         link.click();
+                //         document.body.removeChild(link);
+                // }
+                //     //进入下一案例，则结束时间
+                //     this.endTime = Date.now();
+                //     clearInterval(that.flash);   //关闭刷新
+                //     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
+                //     // console.log((this.endTime - this.startTime)/1000)
+                //     // console.log("123123",this.caseList)
+                //     //再次询问
+                //     if (confirm("准备好进行下一个案例了吗？")) {
+                //         this.activeCase++;
+                //         this.loadJson();
+                //     }
+                // }
+                if (this.activeCase + 1 >= this.caseList.length) {
                     //结束实验，则结束最后一个案例时间
                     this.endTime = Date.now();
                     clearInterval(that.flash);   //关闭刷新
-                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
-                    // console.log((this.endTime - this.startTime)/1000)
+                    this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
 
                     if (confirm("实验结束，确定要退出系统？")) {
                         //保存信息
-                        let casedata = this.caselist;
-
-                        // casedata.splice(0, 2) //删除前两个预训练案例
+                        let casedata = this.caseList;
 
                         let localCaselist = []
                         // 处理数据为csv的格式
                         let csvString = ""
-                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
+                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' +
+                            "确信程度" + ','+ "耗时" + ',' + "是否正确"
                         csvString += '\r\n'
                         casedata.map(item => {
                             let row = {
-                                'word': item.word,
+                                'letter': item.letter,
                                 'direction': item.direction,
-                                'givenpercent': item.givenpercent,
+                                'givenPercent': item.givenPercent,
                             }
-                            localCaselist.push(row) //caselist里面的案例顺序以答案为准
+                            localCaselist.push(row) //caseList里面的案例顺序以答案为准
 
-                            csvString += item.word + ',' + item.direction + ',' + item.givenpercent + ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
+                            csvString += item.letter + ',' + item.direction + ',' + item.givenPercent +
+                                ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
                             csvString += '\r\n'
                         })
                         //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
@@ -480,6 +393,7 @@
                         link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
                             "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
                             .figureStudy + "_" + this.analysisStudy + ".csv";
+
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
@@ -492,17 +406,9 @@
                     //进入下一案例，则结束时间
                     this.endTime = Date.now();
                     clearInterval(that.flash);   //关闭刷新
-                    this.caselist[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
-                    // console.log((this.endTime - this.startTime)/1000)
-                    // console.log("123123",this.caselist)
-                    //再次询问
+                    this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
                     if (confirm("准备好进行下一个案例了吗？")) {
                         this.activeCase++;
-                        d3.select("#mainsvg").selectAll("g").remove();
-                        // d3.select("#order-form div").remove();
-                        $("#order-form div").remove();
-                        //更新进度条 分为两个环节
-                        this.updateProgress(this.activeCase, this.caselist.length )
                         this.loadJson();
                     }
                 }
@@ -510,409 +416,251 @@
             },
 
 
-            //获取已经被占用的像素坐标
+            /**
+             * 获取已经被占用的像素坐标
+             */
             get_global: function (ctx) {
-                var arr=[];
+                let arr=[];
                 //var sum=0;
-                var imagedata=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
-                var data = imagedata.data;
-                for(var j=0;j<ctx.canvas.height;j++){
-                    for(var i=0;i<ctx.canvas.width;i++){
-                        if(data[(j*ctx.canvas.width+i)*4+3]!=0){
+                let image_data=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+                let data = image_data.data;
+                for(let j=0;j<ctx.canvas.height;j++){
+                    for(let i=0;i<ctx.canvas.width;i++){
+                        if(data[(j*ctx.canvas.width+i)*4+3]!==0){
                             arr.push({x:j,y:i,val:[data[(j*ctx.canvas.width+i)*4],data[(j*ctx.canvas.width+i)*4+1],
                                     data[(j*ctx.canvas.width+i)*4+2],data[(j*ctx.canvas.width+i)*4+3]]});
-                            // sum+=1;
                         }
                     }
                 }
                 return arr;
             },
-            //将传入文本字符串转换为像素信息组成的数组
-            get_letter: function (text) {
-                var  offCanvas3 = document.createElement("canvas");//离屏canvas 通过代码创建出来的
-                offCanvas3.width=200;
-                offCanvas3.height=100;
-                var offContext3 = offCanvas3.getContext('2d', { willReadFrequently: true });;
-                var arrletter=[];
-                offContext3.font = '16px Times New Roman';
-                var xx=0;
-                for(var i=0;i<text.length;i++){
-                    const charWidth = offContext3.measureText(text[i]).width;
-                    // console.log("字符的宽度为："+charWidth);
-                    offContext3.fillText(text[i],offContext3.canvas.width/2-this.metric[0]/2+xx,offContext3.canvas.height/2+this.metric[1]/2);
-                    // console.log("文字的左下角坐标为："+(offContext3.canvas.width/2-this.metric[0]/2+xx)+" ,,,"+(offContext3.canvas.height/2+this.metric[1]/2));
-                    var arr4=this.get_global(offContext3);
-                    arrletter.push(arr4);
-                    xx+=charWidth;
-                    offContext3.clearRect(0,0,200,100);
-                    // console.log("字母"+text[i]+"占用的像素信息为：");
-                    // console.log(arr4);
+            /**
+             * 获取已经被占用的像素坐标
+             */
+            get_change2: function(arr1,arr2) {
+                let sum3=0;
+                for(let i=0;i<arr1.length;i++){
+                    for(let j=0;j<arr2.length;j++){
+                        if(arr1[i].x===arr2[j].x){
+                            if(arr1[i].y===arr2[j].y){
+                                sum3+=1;
+                            }
+                        }
+                    }
                 }
-                return arrletter;
-             },
-            //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
-            liner_rect_overlap: function (ctx,startx,starty,width,height,percent,inletterarr){
-                // var temp3=Math.floor(Math.random()*8)+1; //生成一个1到8的随机数
-                temp3=this.direction
-                //获取已经被占用的像素坐标
-                function get_global(ctx){
-                    var arr=[];
-                    //var sum=0;
-                    var imagedata=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
-                    var data = imagedata.data;
-                    for(var j=0;j<ctx.canvas.height;j++){
-                        for(var i=0;i<ctx.canvas.width;i++){
-                            if(data[(j*ctx.canvas.width+i)*4+3]!=0){
-                                arr.push({x:j,y:i,val:[data[(j*ctx.canvas.width+i)*4],data[(j*ctx.canvas.width+i)*4+1],
-                                        data[(j*ctx.canvas.width+i)*4+2],data[(j*ctx.canvas.width+i)*4+3]]});
-                                // sum+=1;
-                            }
-                        }
-                    }
-                    return arr;
-                }
-                //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
-                function rect_overlap2(ctx,startx,starty,width,height, percent,temp3,arrletter){
-                    //获取所有字母的平均长度；
-                    function avg(arr){
-                        var sum=0;
-                        for(var i=0;i<arr.length;i++){
-                            sum+=arr[i];
-                        }
-                        return sum/arr.length;
-                    }
-                    //获取白色矩形块遮挡后的像素信息-  算法2，使用canvas和offcanvas两个画布中的被遮挡部分坐标比对
-                    function get_change2(arr1,arr2){
-                        var sum3=0;
-                        for(var i=0;i<arr1.length;i++){
-                            for(var j=0;j<arr2.length;j++){
-                                if(arr1[i].x==arr2[j].x){
-                                    if(arr1[i].y==arr2[j].y){
-                                        sum3+=1;
-                                    }
-                                }
-                            }
-                        }
-                        return sum3/arr1.length;
-                    }
-                    //计算文本的宽度和高度
-                    function getTextMetric(text){
-                        const canvas=document.createElement('canvas');
-                        const context=canvas.getContext('2d', { willReadFrequently: true });;
-                        context.font='16px Times New Roman';
-                        var me2=context.measureText(text);
-                        var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
-                        var wordw=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
-                        return [wordw,wordh];
-                    }
-                    var offCanvas=document.createElement("canvas");
-                    offCanvas.width=200;
-                    offCanvas.height=100;
-                    var offContext = offCanvas.getContext('2d', { willReadFrequently: true });;
-
-                    //指定矩形块的宽度！！！！！！！
-                    var m = getTextMetric('m')
-                    var rect_width= m[0];
-                    //var arrletter=get_letter(word);
-                    //const average = arr => arr.reduce((acc, val) => acc + val, 0) / arr.length;
-                    //var temp3=1;
-                    // console.log("----------开始模拟矩形块与word重叠");
-                    //offContext.fillRect(10,0,20,20);
-                    // offContext.fillStyle("ffffff");
-                    offContext.fillStyle = 'white';
-                    if(temp3==1){
-                        offContext.fillRect(startx+width,starty-height,rect_width,height);
-                        var arr2=get_global(offContext);
-                        // console.log("矩形块的像素信息为：");
-                        // console.log(arr2);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        //  var percent1=average(arrpercent);
-                        var x=0;
-                        while(percent1<percent){
-                            x+=1;
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx+width-x,starty-height,rect_width,height);
-                            arr2=get_global(offContext);
-
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-
-                        }
-                        ctx.drawImage(offCanvas,0,0);
-                    }else if(temp3==2){
-                        offContext.fillRect(startx+width,starty-height-height,rect_width,height);
-                        var arr2=get_global(offContext);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        var x=0;
-                        while(percent1<percent){
-
-                            x+=1;
-
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx+width-x,starty-height-height+x,rect_width,height);
-                            arr2=get_global(offContext);
-
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-                        }
-                        ctx.drawImage(offCanvas,0,0);
-
-                    }
-                    else if(temp3==3){
-                        offContext.fillRect(startx+width/2-rect_width/2,starty-height-height,rect_width,height);
-                        var arr2=get_global(offContext);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        var x=0;
-                        while(percent1<percent){
-                            x+=1;
-
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx+width/2-rect_width/2,starty-height-height+x,rect_width,height);
-                            arr2=get_global(offContext);
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-                        }
-                        ctx.drawImage(offCanvas,0,0);
-                        // ctx.fillRect(startx+width/2-rect_width/2,starty-height-height,rect_width,height);
-                    }
-                    else if(temp3==5){
-                        offContext.fillRect(startx-rect_width,starty-height,rect_width,height);
-                        var arr2=get_global(offContext);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        var x=0;
-                        while(percent1<percent){
-
-                            x+=1;
-
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx-rect_width+x,starty-height,rect_width,height);
-                            arr2=get_global(offContext);
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-                        }
-
-                        ctx.drawImage(offCanvas,0,0);
-                        //ctx.fillRect(startx-rect_width,starty-height,rect_width,height);
-                    }
-                    else if(temp3==6){
-                        offContext.fillRect(startx-rect_width,starty,rect_width,height);
-                        var arr2=get_global(offContext);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        var x=0;
-                        while(percent1<percent){
-
-                            x+=1;
-
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx-rect_width+x,starty-x,rect_width,height);
-                            arr2=get_global(offContext);
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-                        }
-                        ctx.drawImage(offCanvas,0,0);
-                        //ctx.fillRect(startx-rect_width,starty,rect_width,height);
-                    }
-                    else if(temp3==4){
-
-                        offContext.fillRect(startx-rect_width,starty-height-height,rect_width,height);
-                        //ctx.drawImage(offCanvas, 0, 0);
-                        var arr2=get_global(offContext);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        var x=0;
-                        while(percent1<percent){
-                            x+=1;
-
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx-rect_width+x,starty-height-height+x,rect_width,height);
-                            arr2=get_global(offContext);
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-                        }
-                        ctx.drawImage(offCanvas,0,0);
-                        //ctx.fillRect(startx-rect_width,starty-height-height,rect_width,height);
-                    }
-                    else if(temp3==7){
-
-                        offContext.fillRect(startx+width/2-rect_width/2,starty,rect_width,height);
-                        var arr2=get_global(offContext);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        var x=0;
-                        while(percent1<percent){
-                            x+=1;
-
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx+width/2-rect_width/2,starty-x,rect_width,height);
-                            arr2=get_global(offContext);
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-                        }
-                        ctx.drawImage(offCanvas,0,0);
-                        //ctx.fillRect(startx+width/2-rect_width/2,starty,rect_width,height);
-                    }
-                    else if(temp3==8){
-
-                        offContext.fillRect(startx+width,starty,rect_width,height);
-                        var arr2=get_global(offContext);
-                        var arrpercent=[];
-                        for(var k=0;k<arrletter.length;k++){
-                            // console.log("第"+k+"个字母的像素信息为：");
-                            // console.log(arrletter[k]);
-
-                            arrpercent.push(get_change2(arrletter[k],arr2));
-                        }
-                        var percent1=avg(arrpercent);
-                        // console.log("最初的百分比为："+percent1);
-                        var x=0;
-                        while(percent1<percent){
-
-                            x+=1;
-
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(startx+width-x,starty-x,rect_width,height);
-                            arr2=get_global(offContext);
-                            var arrpercent=[];
-                            for(var k=0;k<arrletter.length;k++){
-                                arrpercent.push(get_change2(arrletter[k],arr2));
-                            }
-                            var percent1=avg(arrpercent);
-                            // console.log("百分比为："+percent1);
-                        }
-                        ctx.drawImage(offCanvas,0,0);
-                        // ctx.fillRect(startx+width,starty,rect_width,height);
-                    }
-                    return percent1;
-
-                }
-                var per = rect_overlap2(ctx,startx,starty,width,height,percent,temp3,inletterarr);
-                return per;
+                return sum3/arr1.length;
             },
-            //计算文本的宽度和高度
+            /**
+             * 求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
+             */
+            liner_rect_overlap: function (ctx,start_x,start_y,width,height,rect_width,rect_height,direction,percent,letter_pixel){
+                //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
+                let offCanvas=document.createElement("canvas");
+                offCanvas.width=200;
+                offCanvas.height=100;
+                let offContext = offCanvas.getContext('2d', { willReadFrequently: true });
+                let temp3=direction;
+                offContext.fillStyle = 'white';
+                if(temp3===-1){
+                    offContext.clearRect(0,0,200,100);
+                }
+                else if(temp3===1){
+                    //初始状态不要遮挡
+                    offContext.fillRect(start_x+width+5,start_y-height/2-rect_height/2,rect_width,rect_height);
+                    let rect_pixel = this.get_global(offContext);
+                    let percent1 = this.get_change2(letter_pixel,rect_pixel);
+                    let x = 0;
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x+width+5-x,start_y-height/2-rect_height/2,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_width+5){
+                            break;
+                        }
+                    }
+                    //console.log("1end");
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===2){
+                    offContext.fillRect(start_x+width+5,start_y-height-rect_height-5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    //在该状态空间内移动
+                    for(let x=0;x<=width+5;x++){
+                        for(let y=0;y<=height+5;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x+width+5-x,start_y-height-rect_height-5+x,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+
+                }
+                else if(temp3===3){
+                    offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height-5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    let x=0;
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height-5+x,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_height+5){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===4){
+                    offContext.fillRect(start_x-rect_width-5,start_y-height-rect_height-5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    for(let x=0;x<=width+5;x++){
+                        for(let y=0;y<=height+5;y++) {
+                            offContext.clearRect(0, 0, 200, 100);
+                            offContext.fillRect(start_x - rect_width - 5 + x, start_y - height - rect_height - 5 + x, rect_width, rect_height);
+                            rect_pixel = this.get_global(offContext);
+                            percent1 = this.get_change2(letter_pixel, rect_pixel);
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
+                }
+                else if(temp3===5){
+                    offContext.fillRect(start_x-rect_width-5,start_y-rect_height/2-height/2,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    let x=0;
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x-rect_width-5+x,start_y-rect_height/2-height/2,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_width+5){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
+                }
+                else if(temp3===6){
+                    offContext.fillRect(start_x-rect_width-5,start_y+5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    //在该状态空间内移动
+                    for(let x=0;x<=width+5;x++){
+                        for(let y=0;y<=height+5;y++) {
+                            offContext.clearRect(0, 0, 200, 100);
+                            offContext.fillRect(start_x - rect_width - 5 + x, start_y + 5 - x, rect_width, rect_height);
+                            rect_pixel = this.get_global(offContext);
+                            percent1 = this.get_change2(letter_pixel, rect_pixel);
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
+                }
+                else if(temp3===7){
+                    offContext.fillRect(start_x+width/2-rect_width/2,start_y+5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    let x=0;
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x+width/2-rect_width/2,start_y+5-x,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_height+5){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
+                }
+                else if(temp3===8){
+                    offContext.fillRect(start_x+width+5,start_y+5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    for(let x=0;x<=width+5;++x) {
+                        for (let y = 0; y <= height + 5; y++) {
+                            offContext.clearRect(0, 0, 200, 100);
+                            offContext.fillRect(start_x + width + 5 - x, start_y + 5 - x, rect_width, rect_height);
+                            rect_pixel = this.get_global(offContext);
+                            percent1 = this.get_change2(letter_pixel, rect_pixel);
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
+                }
+            },
+            /**
+             * 计算文本的宽度和高度
+             */
             getTextMetric: function (text) {
                 const canvas=document.createElement('canvas');
-                const context=canvas.getContext('2d', { willReadFrequently: true });;
+                const context=canvas.getContext('2d', { willReadFrequently: true });
                 context.font='16px Times New Roman';
-                var me2=context.measureText(text);
-                var wordh=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
-                var wordw=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
-                return [wordw,wordh];
+                let me2=context.measureText(text);
+                let word_h=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
+                let word_w=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
+                return [Math.ceil(word_w),Math.ceil(word_h)];
             },
-            //找到a~z中最大的宽和高作为遮挡用的矩形块的宽和高
-            getMaxWH: function(){
-                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-                var max_wh=[0,0];
+            /**
+             * 找到a~z中最大的宽和高作为遮挡用的矩形块的宽和高
+             */
+            getMaxWH: function() {
+                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
+                    'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+                let max_wh=[0,0];
                 for(let i=0; i<letterList.length; i++){
-                    var w_h=this.getTextMetric(letterList[i]);
+                    let w_h=this.getTextMetric(letterList[i]);
                     max_wh[0]=Math.max(max_wh[0],w_h[0]);
                     max_wh[1]=Math.max(max_wh[1],w_h[1]);
                 }
-                return max_wh;
-            },
-            //获取26*8*11个数据
-            getData: function(){
-                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-                //生成11个随机等级
-                // const cover_level=[0.01,0.11,0.21,0.31,0.41,0.51,0.61,0.71,0.81,0.91];
-                // const cover_level=[0.51,0.61,0.71,0.81,0.91];
-                const cover_level=[0.51,0.61,0.71,0.81];
-                let letterArr = [];//存储JSON数据
 
+                return [Math.ceil(max_wh[1]),Math.ceil(max_wh[1])];
+            },
+            /**
+             * 获取26*8*11个数据
+             */
+            getData: function() {
+                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+                    'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+                //生成11个随机等级
+                const cover_level=[0.01,0.11,0.21,0.31,0.41,0.51,0.61,0.71,0.81];
+                let letterArr = [];//存储JSON数据
+                for(let i=0;i<letterList.length;i++){
+                    //临时对象
+                    let obj={ letter: 'a', direction: -1, givenPercent: 0};
+                    obj.letter=letterList[i];//定义字母
+                    letterArr.push(obj);
+                }
                 for(let i=0;i<letterList.length;i++){
                     for(let j=1;j<=8;j++){
-                        for(let k=1; k<cover_level.length+1;k++){
+                        for(let k=0; k<cover_level.length;k++){
                             //临时对象
-                            let obj={ word: 'a', direction: 1, givenpercent: 0};
-                            obj.word=letterList[i];//定义字母
+                            let obj={ word: 'a', direction: 1, givenPercent: 0};
+                            obj.letter=letterList[i];//定义字母
                             obj.direction=j;//定义方向
-                            // if(k==0){//设定为第0等级
-                            //     obj.givenpercent=0;
-                            // }else{
-                            //     obj.givenpercent=Math.random() * 0.09 + cover_level[k-1];
-                            // }
-                            obj.givenpercent=Math.random() * 0.09 + cover_level[k-1];
+                            obj.givenPercent=Math.random() * 0.09 + cover_level[k];
                             letterArr.push(obj);//push的只是引用
                         }
                     }
