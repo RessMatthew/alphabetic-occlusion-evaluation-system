@@ -34,16 +34,24 @@
                 <div class="gap-container">
                     <label class="font-weight">确信程度：</label>
                     <div style="display:inline-block;">
-                        <input type="radio" name="radio-option" value="0" id="option-0">
-                        <label>有把握</label>
-                    </div>
-                    <div style="display:inline-block;">
                         <input type="radio" name="radio-option" value="1" id="option-1">
-                        <label>不确定</label>
+                        <label>1</label>
                     </div>
                     <div style="display:inline-block;">
                         <input type="radio" name="radio-option" value="2" id="option-2">
-                        <label>没把握</label>
+                        <label>2</label>
+                    </div>
+                    <div style="display:inline-block;">
+                        <input type="radio" name="radio-option" value="3" id="option-3">
+                        <label>3</label>
+                    </div>
+                    <div style="display:inline-block;">
+                        <input type="radio" name="radio-option" value="4" id="option-4">
+                        <label>4</label>
+                    </div>
+                    <div style="display:inline-block;">
+                        <input type="radio" name="radio-option" value="5" id="option-5">
+                        <label>5</label>
                     </div>
                 </div>
             </form>
@@ -138,11 +146,11 @@
             this.figureStudy = localStorage.getItem('figureStudy');
             this.analysisStudy = localStorage.getItem('analysisStudy');
 
-            // if (this.username == null || this.major == null || this.analysisStudy == null) {
-            //     // 无注册信息缓存
-            //     window.location.href = 'signup.html' // 跳转到注册页面
-            // }
-            // else {
+            if (this.username == null || this.major == null || this.analysisStudy == null) {
+                // 无注册信息缓存
+                window.location.href = 'signup.html' // 跳转到注册页面
+            }
+            else {
                 // 有注册信息缓存
                 this.caseList = this.getData(); // 获取案例列表
                 // console.log(this.caseList)
@@ -150,7 +158,23 @@
 
                 let caseOrder = [] // 定义一个空数组用于存储已经选过的数字的下标
                 let newCaseList = [] // 定义一个空数组用于存储生成的新数组
-                // 0-caseList.length-1 中选择caseList.length个不重复的数字
+                for (let i = 0; i <= 25; i++) {
+                    caseOrder.push(i);
+                    newCaseList.push(this.caseList[(i)])
+                }
+
+                // 打乱前26个字母顺序
+                function shuffle(array) {
+                    for (let i = array.length - 1; i > 0; i--) {
+                        let j = Math.floor(Math.random() * (i + 1)); // 生成 0 到 i 的随机整数
+                        let temp = array[i];
+                        array[i] = array[j];
+                        array[j] = temp;
+                    }
+                    return array;
+                }
+                newCaseList = shuffle(newCaseList)
+
                 // 循环直到新的列表中包含和原始列表相同数量的案例
                 while (newCaseList.length < this.caseList.length) {
                     // 生成一个随机数字，范围为 0 到 caseList.length-1
@@ -167,7 +191,7 @@
                 this.caseList = newCaseList // 将新的列表赋值给 this.caseList，完成打乱顺序的操作
 
                 this.loadJson(); //加载案例文件
-            // }
+            }
 
         },
 
@@ -181,15 +205,23 @@
                     this.changeCase()
                 }else if(event.key === "1") {
                     event.preventDefault();
-                    let radio = document.getElementById('option-0');
+                    let radio = document.getElementById('option-1');
                     radio.checked = true;
                 }else if(event.key === "2") {
                     event.preventDefault();
-                    let radio = document.getElementById('option-1');
+                    let radio = document.getElementById('option-2');
                     radio.checked = true;
                 }else if(event.key === "3"){
                     event.preventDefault();
-                    let radio = document.getElementById('option-2');
+                    let radio = document.getElementById('option-3');
+                    radio.checked = true;
+                }else if(event.key === "4"){
+                    event.preventDefault();
+                    let radio = document.getElementById('option-4');
+                    radio.checked = true;
+                }else if(event.key === "5"){
+                    event.preventDefault();
+                    let radio = document.getElementById('option-5');
                     radio.checked = true;
                 }
             },
@@ -201,7 +233,7 @@
                     alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你的第一视感字母\n')
 
                 this.inputElement.value = '';
-                let radio = document.getElementById('option-0');
+                let radio = document.getElementById('option-1');
                 radio.checked = true;
                 radio.checked = false;
 
@@ -218,6 +250,7 @@
                 let letter_metric = this.getTextMetric(this.letter);
                 let [width,height] = [letter_metric[0],letter_metric[1]];
                 let [start_x,start_y] = [ctx.canvas.width/2-width/2,ctx.canvas.height/2+height/2];
+                let slope = height/width;
 
                 // 绘制字母
                 ctx.font = "16px Times New Roman";
@@ -225,11 +258,11 @@
 
                 // 绘制遮挡矩形
                 let letter_pixel = this.get_global(ctx); // 获取已经被占用的像素坐标
-                this.liner_rect_overlap(ctx,start_x,start_y,width,height,
-                    this.rect_width,this.rect_height,this.direction,this.givenPercent,letter_pixel);
+                this.caseList[this.activeCase]['givenPercent'] = this.liner_rect_overlap(ctx, start_x, start_y, width, height,
+                    this.rect_width, this.rect_height, this.direction, this.givenPercent, letter_pixel, slope)
 
-                document.getElementById("myp").innerHTML = "当前字母像素重叠比例：" +
-                    this.givenPercent + "字母-方向:" + this.letter + '-' + this.direction;
+                // document.getElementById("myp").innerHTML = "当前字母像素重叠比例：" +
+                //     this.caseList[this.activeCase]['givenPercent'] + "字母-方向:" + this.letter + '-' + this.direction;
 
                 this.initTimer(); //每个案例限时完成任务
 
@@ -289,8 +322,7 @@
                 if (confidence === undefined) {
                     return false
                 }
-                confidence = parseInt(confidence) + 1
-                this.caseList[this.activeCase]['confidence'] = confidence
+                this.caseList[this.activeCase]['confidence'] =  parseInt(confidence)
 
                 return true
             },
@@ -429,6 +461,10 @@
                 let arr=[];
                 //var sum=0;
                 let image_data=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+                ctx.imageSmoothingEnabled = true;
+                ctx.webkitImageSmoothingEnabled = true;
+                ctx.mozImageSmoothingEnabled = true;
+                ctx.willReadFrequently = true;
                 let data = image_data.data;
                 for(let j=0;j<ctx.canvas.height;j++){
                     for(let i=0;i<ctx.canvas.width;i++){
@@ -460,7 +496,7 @@
              * 求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
              */
             liner_rect_overlap: function (ctx,start_x,start_y,width,height,
-                                          rect_width,rect_height,direction,percent,letter_pixel){
+                                          rect_width,rect_height,direction,percent,letter_pixel,slope){
                 //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
                 let offCanvas=document.createElement("canvas");
                 offCanvas.width=200;
@@ -468,56 +504,68 @@
                 let offContext = offCanvas.getContext('2d', { willReadFrequently: true });
                 let temp3=direction;
                 offContext.fillStyle = 'white';
+                let percent1 = 0;
                 if(temp3===-1){
                     offContext.clearRect(0,0,200,100);
                 }
                 else if(temp3===1){
                     //初始状态不要遮挡
                     offContext.fillRect(start_x+width+5,start_y-height/2-rect_height/2,rect_width,rect_height);
-                    let rect_pixel = this.get_global(offContext);
-                    let percent1 = this.get_change2(letter_pixel,rect_pixel);
-                    let x = 0;
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    let x=0;
                     while(percent1<percent){
                         x+=1;
                         offContext.clearRect(0,0,200,100);
-                        offContext.fillRect(start_x+width+5-x,start_y-height/2-rect_height/2,rect_width,rect_height);
+                        offContext.fillRect(start_x+width-x+5,start_y-height/2-rect_height/2,rect_width,rect_height);
                         rect_pixel=this.get_global(offContext);
                         percent1=this.get_change2(letter_pixel,rect_pixel);
                         if(x>rect_width+5){
                             break;
                         }
                     }
-                    //console.log("1end");
                     ctx.drawImage(offCanvas,0,0);
                 }
                 else if(temp3===2){
-                    offContext.fillRect(start_x+width+5,start_y-height-rect_height-5,rect_width,rect_height);
+                    offContext.fillRect(start_x+width,start_y-height-rect_height,rect_width,rect_height);
                     let rect_pixel=this.get_global(offContext);
-                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
                     //在该状态空间内移动
-                    for(let x=0;x<=width+5;x++){
-                        for(let y=0;y<=height+5;y++){
+                    for(let x=0;x<=width;x++){
+                        for(let y=0;y<=x*slope;y++){
                             offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(start_x+width+5-x,start_y-height-rect_height-5+x,rect_width,rect_height);
+                            offContext.fillRect(start_x+width-x,start_y-height-rect_height+y,rect_width,rect_height);
                             rect_pixel=this.get_global(offContext);
                             percent1=this.get_change2(letter_pixel,rect_pixel);
+                            console.log(percent1)
                             if (percent1>=percent){
                                 break;
                             }
                         }
+                        if(percent1>=percent){
+                            break;
+                        }
                     }
                     ctx.drawImage(offCanvas,0,0);
-
                 }
                 else if(temp3===3){
                     offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height-5,rect_width,rect_height);
                     let rect_pixel=this.get_global(offContext);
-                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
                     let x=0;
                     while(percent1<percent){
                         x+=1;
                         offContext.clearRect(0,0,200,100);
-                        offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height-5+x,rect_width,rect_height);
+                        offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height+x-5,rect_width,rect_height);
                         rect_pixel=this.get_global(offContext);
                         percent1=this.get_change2(letter_pixel,rect_pixel);
                         if(x>rect_height+5){
@@ -527,28 +575,37 @@
                     ctx.drawImage(offCanvas,0,0);
                 }
                 else if(temp3===4){
-                    offContext.fillRect(start_x-rect_width-5,start_y-height-rect_height-5,rect_width,rect_height);
+                    offContext.fillRect(start_x-rect_width,start_y-height-rect_height,rect_width,rect_height);
                     let rect_pixel=this.get_global(offContext);
-                    let percent1=this.get_change2(letter_pixel,rect_pixel);
-                    for(let x=0;x<=width+5;x++){
-                        for(let y=0;y<=height+5;y++) {
-                            offContext.clearRect(0, 0, 200, 100);
-                            offContext.fillRect(start_x - rect_width - 5 + x, start_y - height - rect_height - 5 + x, rect_width, rect_height);
-                            rect_pixel = this.get_global(offContext);
-                            percent1 = this.get_change2(letter_pixel, rect_pixel);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    //在该状态空间内移动
+                    for(let x=0;x<=width;x++){
+                        for(let y=0;y<=x*slope;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x-rect_width+x,start_y-height-rect_height+y,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
                             if (percent1>=percent){
                                 break;
                             }
                         }
+                        if(percent1>=percent){
+                            break;
+                        }
                     }
                     ctx.drawImage(offCanvas,0,0);
-                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
                 }
                 else if(temp3===5){
                     offContext.fillRect(start_x-rect_width-5,start_y-rect_height/2-height/2,rect_width,rect_height);
                     let rect_pixel=this.get_global(offContext);
-                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
                     let x=0;
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
                     while(percent1<percent){
                         x+=1;
                         offContext.clearRect(0,0,200,100);
@@ -560,31 +617,36 @@
                         }
                     }
                     ctx.drawImage(offCanvas,0,0);
-                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
                 }
                 else if(temp3===6){
-                    offContext.fillRect(start_x-rect_width-5,start_y+5,rect_width,rect_height);
+                    offContext.fillRect(start_x-rect_width,start_y,rect_width,rect_height);
                     let rect_pixel=this.get_global(offContext);
-                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+
                     //在该状态空间内移动
-                    for(let x=0;x<=width+5;x++){
-                        for(let y=0;y<=height+5;y++) {
-                            offContext.clearRect(0, 0, 200, 100);
-                            offContext.fillRect(start_x - rect_width - 5 + x, start_y + 5 - x, rect_width, rect_height);
-                            rect_pixel = this.get_global(offContext);
-                            percent1 = this.get_change2(letter_pixel, rect_pixel);
+                    for(let x=0;x<=width;x++){
+                        for(let y=0;y<=x*slope;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x-rect_width+x,start_y-y,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
                             if (percent1>=percent){
                                 break;
                             }
                         }
+                        if(percent1>=percent){
+                            break;
+                        }
                     }
                     ctx.drawImage(offCanvas,0,0);
-                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
                 }
                 else if(temp3===7){
                     offContext.fillRect(start_x+width/2-rect_width/2,start_y+5,rect_width,rect_height);
                     let rect_pixel=this.get_global(offContext);
-                    let percent1=this.get_change2(letter_pixel,rect_pixel);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
                     let x=0;
                     while(percent1<percent){
                         x+=1;
@@ -597,26 +659,31 @@
                         }
                     }
                     ctx.drawImage(offCanvas,0,0);
-                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
                 }
                 else if(temp3===8){
-                    offContext.fillRect(start_x+width+5,start_y+5,rect_width,rect_height);
+                    offContext.fillRect(start_x+width,start_y,rect_width,rect_height);
                     let rect_pixel=this.get_global(offContext);
-                    let percent1=this.get_change2(letter_pixel,rect_pixel);
-                    for(let x=0;x<=width+5;++x) {
-                        for (let y = 0; y <= height + 5; y++) {
-                            offContext.clearRect(0, 0, 200, 100);
-                            offContext.fillRect(start_x + width + 5 - x, start_y + 5 - x, rect_width, rect_height);
-                            rect_pixel = this.get_global(offContext);
-                            percent1 = this.get_change2(letter_pixel, rect_pixel);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    for(let x=0;x<=width;++x){
+                        for(let y=0;y<=x*slope;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x+width-x,start_y-y,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
                             if (percent1>=percent){
                                 break;
                             }
                         }
+                        if (percent1>=percent){
+                            break;
+                        }
                     }
                     ctx.drawImage(offCanvas,0,0);
-                    // ctx.fillRect(start_x+width/2-rect_width/2,start_y-height-height,rect_width,height);
                 }
+                return percent1;
             },
             /**
              * 计算文本的宽度和高度
@@ -667,7 +734,8 @@
                             let obj={ word: 'a', direction: 1, givenPercent: 0};
                             obj.letter=letterList[i];//定义字母
                             obj.direction=j;//定义方向
-                            obj.givenPercent=Math.random() * 0.09 + cover_level[k];
+                            // obj.givenPercent=Math.random() * 0.09 + cover_level[k];
+                            obj.givenPercent=cover_level[k];
                             letterArr.push(obj);//push的只是引用
                         }
                     }
