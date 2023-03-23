@@ -131,6 +131,7 @@
 
             this.myCanvas_dom = document.getElementById("myCanvas");
             this.inputElement = document.getElementById('inputLetter');
+            this.inputElement.addEventListener("input", this.onInput);
             // this.time_dom = document.getElementById("_time")
 
             // 获取26字母中最大的宽度和高度
@@ -224,6 +225,11 @@
                     let radio = document.getElementById('option-5');
                     radio.checked = true;
                 }
+            },
+            onInput: function () {
+                // console.log(`Input element ${event.target.tagName} has value:`, event.target.value);
+                this.endTime = Date.now();
+                // console.log(this.endTime)
             },
             /**
              * 初始化加载案例文件
@@ -338,7 +344,7 @@
                 }
                 let that = this;
                 // if ((this.activeCase + 1) % 30 ===0 ){
-                //     this.endTime = Date.now();
+                //     // this.endTime = Date.now();
                 //     clearInterval(that.flash);   //关闭刷新
                 //     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
                 //     if (confirm("保存当前信息")) {
@@ -392,7 +398,7 @@
                 // }
                 if (this.activeCase + 1 >= this.caseList.length) {
                     //结束实验，则结束最后一个案例时间
-                    this.endTime = Date.now();
+                    // this.endTime = Date.now();
                     clearInterval(that.flash);   //关闭刷新
                     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
 
@@ -442,8 +448,10 @@
                 }
                 else {
                     //进入下一案例，则结束时间
-                    this.endTime = Date.now();
+                    // this.endTime = Date.now();
                     clearInterval(that.flash);   //关闭刷新
+                    console.log(this.endTime)
+                    console.log(this.startTime)
                     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
                     if (confirm("准备好进行下一个案例了吗？")) {
                         this.activeCase++;
