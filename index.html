@@ -11,7 +11,6 @@
         [v-cloak]{
             display: none;
         }
-
     </style>
 </head>
 
@@ -26,16 +25,17 @@
 
         <section class="form-content">
             <form id="order-form">
-                <p v-cloak style="margin: 0;margin-top: 10px;color: #4060b2;font-weight: 500;">实验进度：{{activeCase+1}}/{{caseTotal}} </p>
+                <p v-if="shouldShow" v-cloak style="margin: 0;margin-top: 10px;color: #4060b2;font-weight: 500;">实验进度：{{activeCase + 1 -26}}/{{caseTotal -26}} </p>
                 <div class="order">
                     <label class="font-weight">视感字母：</label>
                     <input id='inputLetter' maxlength="1" type="text" >
+                    <button id='give_up'>放弃</button>
                 </div>
                 <div class="gap-container">
                     <label class="font-weight">确信程度：</label>
                     <div style="display:inline-block;">
                         <input type="radio" name="radio-option" value="1" id="option-1">
-                        <label>1</label>
+                        <label>1(low)</label>
                     </div>
                     <div style="display:inline-block;">
                         <input type="radio" name="radio-option" value="2" id="option-2">
@@ -51,7 +51,7 @@
                     </div>
                     <div style="display:inline-block;">
                         <input type="radio" name="radio-option" value="5" id="option-5">
-                        <label>5</label>
+                        <label>5(high)</label>
                     </div>
                 </div>
             </form>
@@ -120,6 +120,7 @@
             myCanvas_dom: null,
             inputLetter_dom: null,
             inputRadios_dom: null,
+            give_up_dom: null,
         },
 
         /**
@@ -131,6 +132,10 @@
 
             this.myCanvas_dom = document.getElementById("myCanvas");
             this.inputElement = document.getElementById('inputLetter');
+            this.give_up_dom = document.getElementById('give_up');
+
+            this.give_up_dom.addEventListener('click', this.giveUp);
+
             this.inputElement.addEventListener("input", this.onInput);
             // this.time_dom = document.getElementById("_time")
 
@@ -195,8 +200,19 @@
             }
 
         },
-
+        computed: {
+            shouldShow:function() {
+                return this.activeCase+1 > 26;
+            },
+        },
         methods: {
+            giveUp: function (event) {
+                if (confirm("准备好进行下一个案例了吗？")) {
+                    event.preventDefault(); // 阻止浏览器默认行为
+                    this.activeCase++;
+                    this.loadJson();
+                }
+            },
             /**
              * 添加下一步快捷键
              */
@@ -236,7 +252,8 @@
              */
             loadJson: function () {
                 if(this.activeCase === 0)
-                    alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n' + '2. 输入你的第一视感字母\n')
+                    alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n'
+                        + '2. 输入你的第一视感字母\n' + '3. 前26个图片为示例\n')
 
                 this.inputElement.value = '';
                 let radio = document.getElementById('option-1');
@@ -284,19 +301,19 @@
              */
             initTimer: function () {
                 let that = this;
-                let timerCount = 5; //每个案例限制五秒时间
+                let timerCount = 0.3; //每个案例限制300ms时间
 
-                this.flash = setInterval(function () { //每1秒刷新一次
-                    document.getElementById("_time").innerHTML= '字母消失倒计时：'+ '<span style="color:red;">'+ timerCount + '<span/>' +'秒';
-                    timerCount--;
+                this.flash = setInterval(function () { //每150ms刷新一次
+                    // document.getElementById("_time").innerHTML= '字母消失倒计时：'+ '<span style="color:red;">'+ timerCount + '<span/>' +'秒';
+                    timerCount -= 0.15;
 
                     //倒计时结束
-                    if (timerCount === -1){
+                    if (timerCount < 0){
                         let ctx = that.myCanvas_dom.getContext('2d', { willReadFrequently: true });
                         ctx.clearRect(0,0,200,100); // 清除字母
                         clearInterval(that.flash);   // 关闭刷新
                     }
-                }, 1000);
+                }, 150);
             },
 
             /**
@@ -450,8 +467,8 @@
                     //进入下一案例，则结束时间
                     // this.endTime = Date.now();
                     clearInterval(that.flash);   //关闭刷新
-                    console.log(this.endTime)
-                    console.log(this.startTime)
+                    // console.log(this.endTime)
+                    // console.log(this.startTime)
                     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
                     if (confirm("准备好进行下一个案例了吗？")) {
                         this.activeCase++;
@@ -460,8 +477,6 @@
                 }
 
             },
-
-
             /**
              * 获取已经被占用的像素坐标
              */
