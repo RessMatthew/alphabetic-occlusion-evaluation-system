@@ -301,19 +301,19 @@
              */
             initTimer: function () {
                 let that = this;
-                let timerCount = 0.3; //每个案例限制300ms时间
+                let timerCount = 0.2; //每个案例限制200ms时间
 
                 this.flash = setInterval(function () { //每150ms刷新一次
                     // document.getElementById("_time").innerHTML= '字母消失倒计时：'+ '<span style="color:red;">'+ timerCount + '<span/>' +'秒';
-                    timerCount -= 0.15;
+                    timerCount -= 0.1;
 
                     //倒计时结束
-                    if (timerCount < 0){
+                    if (timerCount <= 0){
                         let ctx = that.myCanvas_dom.getContext('2d', { willReadFrequently: true });
                         ctx.clearRect(0,0,200,100); // 清除字母
                         clearInterval(that.flash);   // 关闭刷新
                     }
-                }, 150);
+                }, 100);
             },
 
             /**
