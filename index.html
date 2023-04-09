@@ -308,7 +308,7 @@
                     timerCount -= 0.2;
 
                     //倒计时结束
-                    if (timerCount <= 0){
+                    if (timerCount < 0){
                         let ctx = that.myCanvas_dom.getContext('2d', { willReadFrequently: true });
                         ctx.clearRect(0,0,200,100); // 清除字母
                         clearInterval(that.flash);   // 关闭刷新
