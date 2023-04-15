@@ -29,7 +29,7 @@
                 <div class="order">
                     <label class="font-weight">视感字母：</label>
                     <input id='inputLetter' maxlength="1" type="text" >
-                    <button id='give_up'>放弃</button>
+                    <!-- <button id='give_up'>放弃</button> -->
                 </div>
                 <div class="gap-container">
                     <label class="font-weight">确信程度：</label>
@@ -134,7 +134,7 @@
             this.inputElement = document.getElementById('inputLetter');
             this.give_up_dom = document.getElementById('give_up');
 
-            this.give_up_dom.addEventListener('click', this.giveUp);
+            // this.give_up_dom.addEventListener('click', this.giveUp);
 
             this.inputElement.addEventListener("input", this.onInput);
             // this.time_dom = document.getElementById("_time")
@@ -207,7 +207,7 @@
         },
         methods: {
             giveUp: function (event) {
-                if (confirm("准备好进行下一个案例了吗？")) {
+                if (confirm("确定放弃当前案例？")) {
                     event.preventDefault(); // 阻止浏览器默认行为
                     this.activeCase++;
                     this.loadJson();
@@ -240,6 +240,8 @@
                     event.preventDefault();
                     let radio = document.getElementById('option-5');
                     radio.checked = true;
+                }else if(event.key === "0"){
+                    this.giveUp(event);
                 }
             },
             onInput: function () {
