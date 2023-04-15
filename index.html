@@ -253,6 +253,7 @@
              * 初始化加载案例文件
              */
             loadJson: function () {
+                clearInterval(this.flash);   // 关闭之前未完成的刷新
                 if(this.activeCase === 0)
                     alert('*******字母遮挡识别实验*******\n' + '1. 单个字母被不同程度遮挡；\n'
                         + '2. 输入你的第一视感字母\n' + '3. 前26个图片为示例\n')
@@ -286,12 +287,9 @@
                 this.caseList[this.activeCase]['givenPercent'] = this.liner_rect_overlap(ctx, start_x, start_y, width, height,
                     this.rect_width, this.rect_height, this.direction, this.givenPercent, letter_pixel, slope)
 
-                // document.getElementById("myp").innerHTML = "当前字母像素重叠比例：" +
-                //     this.caseList[this.activeCase]['givenPercent'] + "字母-方向:" + this.letter + '-' + this.direction;
+                this.startTime = Date.now();
 
                 this.initTimer(); //每个案例限时完成任务
-
-                this.startTime = Date.now();
 
                 // 聚焦输入框
                 // let inputElements = document.querySelectorAll('.order input')
@@ -310,7 +308,7 @@
                     timerCount -= 0.2;
 
                     //倒计时结束
-                    if (timerCount < 0){
+                    if (timerCount == 0){
                         let ctx = that.myCanvas_dom.getContext('2d', { willReadFrequently: true });
                         ctx.clearRect(0,0,200,100); // 清除字母
                         clearInterval(that.flash);   // 关闭刷新

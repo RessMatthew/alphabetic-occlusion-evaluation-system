@@ -69,7 +69,7 @@ form>.order {
   margin: 20px 0px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* justify-content: space-between; */
   width: 100%;
 }
 
@@ -82,9 +82,10 @@ form .order div {
 
 
 input[type='text'] {
-  padding: 5px;
+  padding: 8px;
   font-size: 0.8em;
-  width: 58%;
+  width: 65%;
+  margin-left: 12px;
 }
 
 form label {
