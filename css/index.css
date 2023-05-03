@@ -80,13 +80,28 @@ form .order div {
   margin-left: 5px;
 }
 
+input[id='inputPercent'] {
+  padding: 8px;
+  font-size: 0.8em;
+  /* width: 65%; */
+  margin-left: 12px;
+}
 
-input[type='text'] {
+input[id='inputLetter'] {
   padding: 8px;
   font-size: 0.8em;
   width: 65%;
   margin-left: 12px;
 }
+
+select {
+  padding: 8px;
+  font-size: 0.8em;
+  width: 60%;
+  margin-left: 12px;
+}
+
+
 
 form label {
   margin-right: 10px;

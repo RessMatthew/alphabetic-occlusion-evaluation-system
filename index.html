@@ -301,11 +301,11 @@
              */
             initTimer: function () {
                 let that = this;
-                let timerCount = 0.4; //每个案例限制400ms时间
+                let timerCount = 1.0 ; //每个案例限制1000ms时间
 
-                this.flash = setInterval(function () { //每200ms刷新一次
+                this.flash = setInterval(function () { //每500ms刷新一次
                     // document.getElementById("_time").innerHTML= '字母消失倒计时：'+ '<span style="color:red;">'+ timerCount + '<span/>' +'秒';
-                    timerCount -= 0.2;
+                    timerCount -= 0.5;
 
                     //倒计时结束
                     if (timerCount == 0){
@@ -313,7 +313,7 @@
                         ctx.clearRect(0,0,200,100); // 清除字母
                         clearInterval(that.flash);   // 关闭刷新
                     }
-                }, 200);
+                }, 500);
             },
 
             /**

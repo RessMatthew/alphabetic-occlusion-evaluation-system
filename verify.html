@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>字母遮挡识别系统-实验</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <style>
+        [v-cloak]{
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="progress"></div>
+    <h4 class="task_intro">验证系统，输入字母，遮挡方向，遮挡比例自动更新Canvas </h4>
+    <div id="container">
+        <section class="svg">
+            <p id="_time"></p>
+            <canvas id="myCanvas" width="200" height="100" style="border:1px solid #d3d3d3;"></canvas>
+        </section>
+
+        <section class="form-content">
+            <form id="order-form">
+                <div class="order">
+                    <label class="font-weight">视感字母：</label>
+                    <select v-model="letter" @change="handleChange">
+                        <option value="">请选择</option>
+                        <option v-for="letter in letters" :value="letter">{{ letter }}</option>
+                    </select>
+                </div>
+                <div class="order">
+                    <label class="font-weight">遮挡方向：</label>
+                    <select v-model="direction" @change="handleChange">
+                        <option value="">请选择</option>
+                        <option v-for="direction in directions" :value="direction">{{ direction }}</option>
+                    </select>
+                </div>
+                <div class="order">
+                    <label class="font-weight">遮挡比例：</label>
+                    <input id='inputPercent' type="text" v-model="givenPercent" @keyup="handleChange">
+                </div>
+        </section>
+    </div>
+    <p id="myp"></p>
+</body>
+<script src="js/vue.js"></script>
+<script src="js/d3.min-v6.js"></script>
+<script src="js/jquery-3.4.1.min.js"></script>
+<script src="js/FileSaver.js"></script>
+<script>
+    let app = new Vue({
+        el: "#container",
+        data: {
+            letter: null, //当前字母
+            givenPercent: null, //当前重叠比例
+            direction: null, //当前遮挡方向（1-8依次为：从最右逆时针）
+
+            rect_width: null, //26字母中最大的宽度
+            rect_height: null, //26字母中最大的高度
+
+            letters: Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i)),
+            directions: [1,2,3,4,5,6,7,8],
+        
+            myCanvas_dom: null,
+        },
+        mounted() {
+            this.myCanvas_dom = document.getElementById("myCanvas");
+            // 获取26字母中最大的宽度和高度
+            [this.rect_width, this.rect_height] = this.getMaxWH()
+
+            this.loadJson();
+        },
+        methods: {
+            /**
+             * 初始化加载案例文件
+             */
+            loadJson: function () {
+
+                // this.givenPercent = 0.33   // 当前重叠比例
+                // this.letter = "s";   // 当前字母
+                // this.direction = 1; //  当前遮挡方向
+
+                // 创建了一个CanvasRenderingContext2D对象的实例
+                let ctx = this.myCanvas_dom.getContext('2d', { willReadFrequently: true });
+                // 清除画布左上角为原点、长宽分别为 200 像素和 100 像素的矩形区域
+                ctx.clearRect(0,0,200,100);
+
+                // 获取字母的宽度和高度
+                let letter_metric = this.getTextMetric(this.letter);
+                let [width,height] = [letter_metric[0],letter_metric[1]];
+                let [start_x,start_y] = [ctx.canvas.width/2-width/2,ctx.canvas.height/2+height/2];
+                let slope = height/width;
+
+                // 绘制字母
+                ctx.font = "16px Times New Roman";
+                ctx.fillText(this.letter,start_x,start_y);
+
+                // 绘制遮挡矩形
+                let letter_pixel = this.get_global(ctx); // 获取已经被占用的像素坐标
+                this.liner_rect_overlap(ctx, start_x, start_y, width, height,
+                    this.rect_width, this.rect_height, this.direction, this.givenPercent, letter_pixel, slope)
+            },
+
+            handleChange: function() {
+                this.loadJson();
+            },
+            changePercent: function(val) {
+                this.givenPercent = val
+                this.loadJson();
+            },
+
+            /**
+             * 获取已经被占用的像素坐标
+             */
+            get_global: function (ctx) {
+                let arr=[];
+                //var sum=0;
+                let image_data=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+                ctx.imageSmoothingEnabled = true;
+                ctx.webkitImageSmoothingEnabled = true;
+                ctx.mozImageSmoothingEnabled = true;
+                ctx.willReadFrequently = true;
+                let data = image_data.data;
+                for(let j=0;j<ctx.canvas.height;j++){
+                    for(let i=0;i<ctx.canvas.width;i++){
+                        if(data[(j*ctx.canvas.width+i)*4+3]!==0){
+                            arr.push({x:j,y:i,val:[data[(j*ctx.canvas.width+i)*4],data[(j*ctx.canvas.width+i)*4+1],
+                                    data[(j*ctx.canvas.width+i)*4+2],data[(j*ctx.canvas.width+i)*4+3]]});
+                        }
+                    }
+                }
+                return arr;
+            },
+            /**
+             * 获取已经被占用的像素坐标
+             */
+            get_change2: function(arr1,arr2) {
+                let sum3=0;
+                for(let i=0;i<arr1.length;i++){
+                    for(let j=0;j<arr2.length;j++){
+                        if(arr1[i].x===arr2[j].x){
+                            if(arr1[i].y===arr2[j].y){
+                                sum3+=1;
+                            }
+                        }
+                    }
+                }
+                return sum3/arr1.length;
+            },
+            /**
+             * 求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
+             */
+            liner_rect_overlap: function (ctx,start_x,start_y,width,height,
+                                          rect_width,rect_height,direction,percent,letter_pixel,slope){
+                //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
+                let offCanvas=document.createElement("canvas");
+                offCanvas.width=200;
+                offCanvas.height=100;
+                let offContext = offCanvas.getContext('2d', { willReadFrequently: true });
+                let temp3=direction;
+                offContext.fillStyle = 'white';
+                let percent1 = 0;
+                if(temp3===-1){
+                    offContext.clearRect(0,0,200,100);
+                }
+                else if(temp3===1){
+                    //初始状态不要遮挡
+                    offContext.fillRect(start_x+width+5,start_y-height/2-rect_height/2,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    let x=0;
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x+width-x+5,start_y-height/2-rect_height/2,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_width+5){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===2){
+                    offContext.fillRect(start_x+width,start_y-height-rect_height,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    //在该状态空间内移动
+                    for(let x=0;x<=width;x++){
+                        for(let y=0;y<=x*slope;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x+width-x,start_y-height-rect_height+y,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
+                            // console.log(percent1)
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                        if(percent1>=percent){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===3){
+                    offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height-5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    let x=0;
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height+x-5,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_height+5){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===4){
+                    offContext.fillRect(start_x-rect_width,start_y-height-rect_height,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    //在该状态空间内移动
+                    for(let x=0;x<=width;x++){
+                        for(let y=0;y<=x*slope;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x-rect_width+x,start_y-height-rect_height+y,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                        if(percent1>=percent){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===5){
+                    offContext.fillRect(start_x-rect_width-5,start_y-rect_height/2-height/2,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    let x=0;
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x-rect_width-5+x,start_y-rect_height/2-height/2,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_width+5){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===6){
+                    offContext.fillRect(start_x-rect_width,start_y,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+
+                    //在该状态空间内移动
+                    for(let x=0;x<=width;x++){
+                        for(let y=0;y<=x*slope;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x-rect_width+x,start_y-y,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                        if(percent1>=percent){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===7){
+                    offContext.fillRect(start_x+width/2-rect_width/2,start_y+5,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    let x=0;
+                    while(percent1<percent){
+                        x+=1;
+                        offContext.clearRect(0,0,200,100);
+                        offContext.fillRect(start_x+width/2-rect_width/2,start_y+5-x,rect_width,rect_height);
+                        rect_pixel=this.get_global(offContext);
+                        percent1=this.get_change2(letter_pixel,rect_pixel);
+                        if(x>rect_height+5){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                else if(temp3===8){
+                    offContext.fillRect(start_x+width,start_y,rect_width,rect_height);
+                    let rect_pixel=this.get_global(offContext);
+                    percent1=this.get_change2(letter_pixel,rect_pixel);
+                    if (percent1!==0){
+                        console.log("警告警告");
+                    }
+                    for(let x=0;x<=width;++x){
+                        for(let y=0;y<=x*slope;y++){
+                            offContext.clearRect(0,0,200,100);
+                            offContext.fillRect(start_x+width-x,start_y-y,rect_width,rect_height);
+                            rect_pixel=this.get_global(offContext);
+                            percent1=this.get_change2(letter_pixel,rect_pixel);
+                            if (percent1>=percent){
+                                break;
+                            }
+                        }
+                        if (percent1>=percent){
+                            break;
+                        }
+                    }
+                    ctx.drawImage(offCanvas,0,0);
+                }
+                return percent1;
+            },
+            /**
+             * 计算文本的宽度和高度
+             */
+            getTextMetric: function (text) {
+                const canvas=document.createElement('canvas');
+                const context=canvas.getContext('2d', { willReadFrequently: true });
+                context.font='16px Times New Roman';
+                let me2=context.measureText(text);
+                let word_h=Math.abs(me2.actualBoundingBoxAscent) + Math.abs(me2.actualBoundingBoxDescent);
+                let word_w=Math.abs(me2.actualBoundingBoxLeft) + Math.abs(me2.actualBoundingBoxRight);
+                return [Math.ceil(word_w),Math.ceil(word_h)];
+            },
+            /**
+             * 找到a~z中最大的宽和高作为遮挡用的矩形块的宽和高
+             */
+            getMaxWH: function() {
+                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
+                    'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+                let max_wh=[0,0];
+                for(let i=0; i<letterList.length; i++){
+                    let w_h=this.getTextMetric(letterList[i]);
+                    max_wh[0]=Math.max(max_wh[0],w_h[0]);
+                    max_wh[1]=Math.max(max_wh[1],w_h[1]);
+                }
+
+                return [Math.ceil(max_wh[1]),Math.ceil(max_wh[1])];
+            },
+            /**
+             * 获取26*8*11个数据
+             */
+            getData: function() {
+                const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+                    'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+                //生成11个随机等级
+                const cover_level=[0.01,0.11,0.21,0.31,0.41,0.51,0.61,0.71,0.81];
+                let letterArr = [];//存储JSON数据
+                for(let i=0;i<letterList.length;i++){
+                    //临时对象
+                    let obj={ letter: 'a', direction: -1, givenPercent: 0};
+                    obj.letter=letterList[i];//定义字母
+                    letterArr.push(obj);
+                }
+                for(let i=0;i<letterList.length;i++){
+                    for(let j=1;j<=8;j++){
+                        for(let k=0; k<cover_level.length;k++){
+                            //临时对象
+                            let obj={ word: 'a', direction: 1, givenPercent: 0};
+                            obj.letter=letterList[i];//定义字母
+                            obj.direction=j;//定义方向
+                            // obj.givenPercent=Math.random() * 0.09 + cover_level[k];
+                            obj.givenPercent=cover_level[k];
+                            letterArr.push(obj);//push的只是引用
+                        }
+                    }
+                }
+                return letterArr;
+            },
+        }
+    })
+</script>
+
+</html>
