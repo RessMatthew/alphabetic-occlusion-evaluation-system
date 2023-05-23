@@ -25,32 +25,32 @@
 
         <section class="form-content">
             <form id="order-form">
-                <p v-if="shouldShow" v-cloak style="margin: 0;margin-top: 10px;color: #4060b2;font-weight: 500;">实验进度：{{activeCase + 1 -26}}/{{caseTotal -26}} </p>
+                <p v-cloak style="margin: 10px 0 0;color: #4060b2;font-weight: 500;">实验进度：{{activeCase + 1}}/{{caseTotal}} </p>
                 <div class="order">
                     <label class="font-weight">视感字母：</label>
-                    <input id='inputLetter' maxlength="1" type="text" >
+                    <label for='inputLetter'></label><input id='inputLetter' maxlength="1" type="text" >
                     <!-- <button id='give_up'>放弃</button> -->
                 </div>
                 <div class="gap-container">
                     <label class="font-weight">确信程度：</label>
                     <div style="display:inline-block;">
-                        <input type="radio" name="radio-option" value="1" id="option-1">
+                        <label for="option-1"></label><input type="radio" name="radio-option" value="1" id="option-1">
                         <label>1(low)</label>
                     </div>
                     <div style="display:inline-block;">
-                        <input type="radio" name="radio-option" value="2" id="option-2">
+                        <label for="option-2"></label><input type="radio" name="radio-option" value="2" id="option-2">
                         <label>2</label>
                     </div>
                     <div style="display:inline-block;">
-                        <input type="radio" name="radio-option" value="3" id="option-3">
+                        <label for="option-3"></label><input type="radio" name="radio-option" value="3" id="option-3">
                         <label>3</label>
                     </div>
                     <div style="display:inline-block;">
-                        <input type="radio" name="radio-option" value="4" id="option-4">
+                        <label for="option-4"></label><input type="radio" name="radio-option" value="4" id="option-4">
                         <label>4</label>
                     </div>
                     <div style="display:inline-block;">
-                        <input type="radio" name="radio-option" value="5" id="option-5">
+                        <label for="option-5"></label><input type="radio" name="radio-option" value="5" id="option-5">
                         <label>5(high)</label>
                     </div>
                 </div>
@@ -69,8 +69,11 @@
         el: "#container",
         data: {
             letter: null, //当前字母
-            givenPercent: null, //当前重叠比例
-            direction: null, //当前遮挡方向（1-8依次为：从最右逆时针）
+            percent1: null, //当前重叠比例
+            position: null, //当前遮挡方向（1-8依次为：从最右逆时针）
+            delta: null,
+            x: null,
+            y: null,
 
             rect_width: null, //26字母中最大的宽度
             rect_height: null, //26字母中最大的高度
@@ -78,28 +81,28 @@
             caseList: [
                 {
                     letter: 'a',
-                    givenPercent: 0.1,
-                    direction: 1,
+                    percent1: 0.1,
+                    position: 1,
                 },
                 {
                     letter: 'b',
-                    givenPercent: 0.1,
-                    direction: 3,
+                    percent1: 0.1,
+                    position: 3,
                 },
                 {
                     letter: 'b',
-                    givenPercent: 0.2,
-                    direction:5,
+                    percent1: 0.2,
+                    position:5,
                 },
                 {
                     letter: 'f',
-                    givenPercent: 0.7,
-                    direction:6,
+                    percent1: 0.7,
+                    position:6,
                 },
                 {
                     letter: 'z',
-                    givenPercent: 0.6,
-                    direction:2,
+                    percent1: 0.6,
+                    position:2,
                 },
             ], //案例列表
             caseTotal: null, //案例总数
@@ -126,7 +129,7 @@
         /**
          * 在组件挂载到 DOM 上后被调用
          */
-        mounted: function () {
+        mounted: async function () {
             // 注册全局键盘事件
             window.addEventListener("keydown", this.onKeyDown);
 
@@ -158,61 +161,82 @@
             }
             else {
                 // 有注册信息缓存
-                this.caseList = this.getData(); // 获取案例列表
-                // console.log(this.caseList)
+                await this.getCsvData().then(dataArray => {
+                    this.caseList = dataArray; // 将解析后的数组对象赋值给 this.caseList
+                }).catch(error => {console.error('Error:', error);}); // 获取案例列表
+
                 this.caseTotal = this.caseList.length // 获取案例总数
-
-                let caseOrder = [] // 定义一个空数组用于存储已经选过的数字的下标
-                let newCaseList = [] // 定义一个空数组用于存储生成的新数组
-                for (let i = 0; i <= 25; i++) {
-                    caseOrder.push(i);
-                    newCaseList.push(this.caseList[(i)])
-                }
-
-                // 打乱前26个字母顺序
-                function shuffle(array) {
-                    for (let i = array.length - 1; i > 0; i--) {
-                        let j = Math.floor(Math.random() * (i + 1)); // 生成 0 到 i 的随机整数
-                        let temp = array[i];
-                        array[i] = array[j];
-                        array[j] = temp;
-                    }
-                    return array;
-                }
-                newCaseList = shuffle(newCaseList)
-
-                // 循环直到新的列表中包含和原始列表相同数量的案例
-                while (newCaseList.length < this.caseList.length) {
-                    // 生成一个随机数字，范围为 0 到 caseList.length-1
-                    // parseInt不能少
-                    let num = parseInt(Math.random() * (this.caseList.length))
-
-                    // 如果该数字的下标没有被选过，则将其存入 caseOrder 数组中，
-                    // 并将该下标对应的元素加入 newCaseList 数组中。
-                    if (caseOrder.indexOf(num) === -1) {
-                        caseOrder.push(num)
-                        newCaseList.push(this.caseList[num])
-                    }
-                }
-                this.caseList = newCaseList // 将新的列表赋值给 this.caseList，完成打乱顺序的操作
 
                 this.loadJson(); //加载案例文件
             }
 
         },
         computed: {
-            shouldShow:function() {
-                return this.activeCase+1 > 26;
-            },
+            // shouldShow:function() {
+            //     return this.activeCase+1 > 26;
+            // },
         },
         methods: {
             giveUp: function (event) {
                 if (confirm("确定放弃当前案例？")) {
                     event.preventDefault(); // 阻止浏览器默认行为
-                    this.activeCase++;
-                    this.loadJson();
+                    let that = this;
+                    if (this.activeCase + 1 >= this.caseList.length) {
+                        clearInterval(that.flash);   //关闭刷新
+                        if (confirm("实验结束，确定要退出系统？")) {
+                            //保存信息
+                            let casedata = this.caseList;
+
+                            let localCaselist = []
+                            // 处理数据为csv的格式
+                            let csvString = ""
+                            csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ','
+                                + "delta" + ',' + "x" + ',' + "y" + ','
+                                + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
+                            csvString += '\r\n'
+                            casedata.map(item => {
+                                let row = {
+                                    'letter': item.letter,
+                                    'position': item.position,
+                                    'percent1': item.percent1,
+                                }
+                                localCaselist.push(row) //caseList里面的案例顺序以答案为准
+
+                                csvString += item.letter + ',' + item.position + ',' + item.percent1 + ','
+                                    + item.delta + ',' + item.x + ',' + item.y + ','
+                                    + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
+                                csvString += '\r\n'
+                            })
+                            //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
+                            //可以通过JSON对象提供的parse和stringify将其他数据类型转化成字符串，再存储到storage中
+                            let str = JSON.stringify(localCaselist);
+                            localStorage.setItem("localCaselist", str);
+
+                            // 保存为csv文件并添加下载按钮
+                            csvString = "data:application/csv," + encodeURIComponent(csvString);
+                            let link = document.createElement('a');
+                            link.href = csvString;
+                            //对下载的文件命名
+                            link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
+                                "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
+                                    .figureStudy + "_" + this.analysisStudy + ".csv";
+
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+
+                            //跳转到反馈页面
+                            window.location.href = 'end.html'
+                        }
+                    }
+                    else {
+                        clearInterval(that.flash);   //关闭刷新
+                        this.activeCase++;
+                        this.loadJson();
+                    }
                 }
             },
+
             /**
              * 添加下一步快捷键
              */
@@ -263,9 +287,15 @@
                 radio.checked = true;
                 radio.checked = false;
 
-                this.givenPercent=this.caseList[this.activeCase]['givenPercent'];   // 当前重叠比例
+                this.percent1=this.caseList[this.activeCase]['percent1'];   // 当前重叠比例
                 this.letter=this.caseList[this.activeCase]['letter'];   // 当前字母
-                this.direction=this.caseList[this.activeCase]['direction']; //  当前遮挡方向
+                this.position=this.caseList[this.activeCase]['position']; //  当前遮挡方向
+                this.delta=this.caseList[this.activeCase]['delta']; //  当前delta
+                this.x=this.caseList[this.activeCase]['x']; //  当前x
+                this.y=this.caseList[this.activeCase]['y']; //  当前y
+
+                console.log("percent1: " + this.percent1 + " position: " + this.position
+                    + " x: " + this.x + " y: " + this.y);
 
                 // 创建了一个CanvasRenderingContext2D对象的实例
                 let ctx = this.myCanvas_dom.getContext('2d', { willReadFrequently: true });
@@ -276,16 +306,22 @@
                 let letter_metric = this.getTextMetric(this.letter);
                 let [width,height] = [letter_metric[0],letter_metric[1]];
                 let [start_x,start_y] = [ctx.canvas.width/2-width/2,ctx.canvas.height/2+height/2];
-                let slope = height/width;
 
                 // 绘制字母
                 ctx.font = "16px Times New Roman";
-                ctx.fillText(this.letter,start_x,start_y);
+                let special_letters = ['g', 'j', 'p', 'q', 'y'];
+                if (special_letters.includes(this.letter)) {
+                    ctx.textBaseline = "bottom";
+                    // 设置文字绘制的基线为底部
+                } else {
+                    ctx.textBaseline = "alphabetic"; // 特殊字母的列表
+                    // 设置文字绘制的基线为标准字母基线
+                }
+                ctx.fillText(this.letter, start_x, start_y); // 在画布上绘制字母
 
                 // 绘制遮挡矩形
-                let letter_pixel = this.get_global(ctx); // 获取已经被占用的像素坐标
-                this.caseList[this.activeCase]['givenPercent'] = this.liner_rect_overlap(ctx, start_x, start_y, width, height,
-                    this.rect_width, this.rect_height, this.direction, this.givenPercent, letter_pixel, slope)
+                this.liner_rect_overlap(ctx, start_x, start_y, width, height,
+                    this.rect_width, this.rect_height, this.position, this.x, this.y );
 
                 this.startTime = Date.now();
 
@@ -308,7 +344,7 @@
                     timerCount -= 0.5;
 
                     //倒计时结束
-                    if (timerCount == 0){
+                    if (timerCount === 0){
                         let ctx = that.myCanvas_dom.getContext('2d', { willReadFrequently: true });
                         ctx.clearRect(0,0,200,100); // 清除字母
                         clearInterval(that.flash);   // 关闭刷新
@@ -360,59 +396,6 @@
                     return;
                 }
                 let that = this;
-                // if ((this.activeCase + 1) % 30 ===0 ){
-                //     // this.endTime = Date.now();
-                //     clearInterval(that.flash);   //关闭刷新
-                //     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
-                //     if (confirm("保存当前信息")) {
-                //         //保存信息
-                //         let casedata = this.caseList.slice(0, this.activeCase);
-                //
-                //         let localCaselist = []
-                //         // 处理数据为csv的格式
-                //         let csvString = ""
-                //         csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
-                //         csvString += '\r\n'
-                //         casedata.map(item => {
-                //             let row = {
-                //                 'letter': item.letter,
-                //                 'direction': item.direction,
-                //                 'givenPercent': item.givenPercent,
-                //             }
-                //             localCaselist.push(row) //caseList里面的案例顺序以答案为准
-                //
-                //             csvString += item.letter + ',' + item.direction + ',' + item.givenPercent + ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
-                //             csvString += '\r\n'
-                //         })
-                //         //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
-                //         //可以通过JSON对象提供的parse和stringify将其他数据类型转化成字符串，再存储到storage中
-                //         let str = JSON.stringify(localCaselist);
-                //         localStorage.setItem("localCaselist", str);
-                //
-                //         // 保存为csv文件并添加下载按钮
-                //         csvString = "data:application/csv," + encodeURIComponent(csvString);
-                //         let link = document.createElement('a');
-                //         link.href = csvString;
-                //         //对下载的文件命名
-                //         link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
-                //             "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
-                //                 .figureStudy + "_" + this.analysisStudy + ".csv";
-                //         document.body.appendChild(link);
-                //         link.click();
-                //         document.body.removeChild(link);
-                // }
-                //     //进入下一案例，则结束时间
-                //     this.endTime = Date.now();
-                //     clearInterval(that.flash);   //关闭刷新
-                //     this.caseList[this.activeCase]['time'] = (this.endTime - this.startTime)/1000;
-                //     // console.log((this.endTime - this.startTime)/1000)
-                //     // console.log("123123",this.caseList)
-                //     //再次询问
-                //     if (confirm("准备好进行下一个案例了吗？")) {
-                //         this.activeCase++;
-                //         this.loadJson();
-                //     }
-                // }
                 if (this.activeCase + 1 >= this.caseList.length) {
                     //结束实验，则结束最后一个案例时间
                     // this.endTime = Date.now();
@@ -426,19 +409,21 @@
                         let localCaselist = []
                         // 处理数据为csv的格式
                         let csvString = ""
-                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ',' + "实验者视感" + ',' +
-                            "确信程度" + ','+ "耗时" + ',' + "是否正确"
+                        csvString += "字母" + ',' + "遮挡方向" + ',' + "重叠比例" + ','
+                            + "delta" + ',' + "x" + ',' + "y" + ','
+                            + "实验者视感" + ',' + "确信程度" + ','+ "耗时" + ',' + "是否正确"
                         csvString += '\r\n'
                         casedata.map(item => {
                             let row = {
                                 'letter': item.letter,
-                                'direction': item.direction,
-                                'givenPercent': item.givenPercent,
+                                'position': item.position,
+                                'percent1': item.percent1,
                             }
                             localCaselist.push(row) //caseList里面的案例顺序以答案为准
 
-                            csvString += item.letter + ',' + item.direction + ',' + item.givenPercent +
-                                ',' + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
+                            csvString += item.letter + ',' + item.position + ',' + item.percent1 + ','
+                                + item.delta + ',' + item.x + ',' + item.y + ','
+                                + item.input + ',' + item.confidence + ',' + item.time + ',' + item.flag
                             csvString += '\r\n'
                         })
                         //storage只能存储字符串的数据，对于JS中常用的数组或对象不能直接存储
@@ -515,199 +500,56 @@
                 }
                 return sum3/arr1.length;
             },
+
+
+
             /**
              * 求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
              */
             liner_rect_overlap: function (ctx,start_x,start_y,width,height,
-                                          rect_width,rect_height,direction,percent,letter_pixel,slope){
-                //求白色矩形块遮挡字母像素占被遮挡字母像素的百分比
+                                          rect_width,rect_height,position,x,y){
                 let offCanvas=document.createElement("canvas");
-                offCanvas.width=200;
-                offCanvas.height=100;
-                let offContext = offCanvas.getContext('2d', { willReadFrequently: true });
-                let temp3=direction;
+                offCanvas.width=200; offCanvas.height=100;
+                let offContext = offCanvas.getContext("2d");
                 offContext.fillStyle = 'white';
-                let percent1 = 0;
-                if(temp3===-1){
+
+                if(position===-1){
                     offContext.clearRect(0,0,200,100);
                 }
-                else if(temp3===1){
-                    //初始状态不要遮挡
-                    offContext.fillRect(start_x+width+5,start_y-height/2-rect_height/2,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-                    if (percent1!==0){
-                        console.log("警告警告");
-                    }
-                    let x=0;
-                    while(percent1<percent){
-                        x+=1;
-                        offContext.clearRect(0,0,200,100);
-                        offContext.fillRect(start_x+width-x+5,start_y-height/2-rect_height/2,rect_width,rect_height);
-                        rect_pixel=this.get_global(offContext);
-                        percent1=this.get_change2(letter_pixel,rect_pixel);
-                        if(x>rect_width+5){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
+                else if(position===1){
+                    offContext.fillRect(start_x+width-x+5,start_y-height/2-rect_height/2,
+                        rect_width,rect_height);
+                }else if(position===2){
+                    offContext.fillRect(start_x+width-x,start_y-height-rect_height+y,
+                        rect_width,rect_height);
                 }
-                else if(temp3===2){
-                    offContext.fillRect(start_x+width,start_y-height-rect_height,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-                    if (percent1!==0){
-                        console.log("警告警告");
-                    }
-                    //在该状态空间内移动
-                    for(let x=0;x<=width;x++){
-                        for(let y=0;y<=x*slope;y++){
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(start_x+width-x,start_y-height-rect_height+y,rect_width,rect_height);
-                            rect_pixel=this.get_global(offContext);
-                            percent1=this.get_change2(letter_pixel,rect_pixel);
-                            console.log(percent1)
-                            if (percent1>=percent){
-                                break;
-                            }
-                        }
-                        if(percent1>=percent){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
+                else if(position===3){
+                    offContext.fillRect(start_x+width/2-rect_width/2,
+                        start_y-height-rect_height+y-5,rect_width,rect_height);
                 }
-                else if(temp3===3){
-                    offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height-5,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-                    if (percent1!==0){
-                        console.log("警告警告");
-                    }
-                    let x=0;
-                    while(percent1<percent){
-                        x+=1;
-                        offContext.clearRect(0,0,200,100);
-                        offContext.fillRect(start_x+width/2-rect_width/2,start_y-height-rect_height+x-5,rect_width,rect_height);
-                        rect_pixel=this.get_global(offContext);
-                        percent1=this.get_change2(letter_pixel,rect_pixel);
-                        if(x>rect_height+5){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
+                else if(position===4){
+                    offContext.fillRect(start_x-rect_width+x,start_y-height-rect_height+y,
+                        rect_width,rect_height);
                 }
-                else if(temp3===4){
-                    offContext.fillRect(start_x-rect_width,start_y-height-rect_height,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-                    if (percent1!==0){
-                        console.log("警告警告");
-                    }
-                    //在该状态空间内移动
-                    for(let x=0;x<=width;x++){
-                        for(let y=0;y<=x*slope;y++){
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(start_x-rect_width+x,start_y-height-rect_height+y,rect_width,rect_height);
-                            rect_pixel=this.get_global(offContext);
-                            percent1=this.get_change2(letter_pixel,rect_pixel);
-                            if (percent1>=percent){
-                                break;
-                            }
-                        }
-                        if(percent1>=percent){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
+                else if(position===5){
+                    offContext.fillRect(start_x-rect_width-5+x,start_y-rect_height/2-height/2,
+                        rect_width,rect_height);
                 }
-                else if(temp3===5){
-                    offContext.fillRect(start_x-rect_width-5,start_y-rect_height/2-height/2,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-                    let x=0;
-                    if (percent1!==0){
-                        console.log("警告警告");
-                    }
-                    while(percent1<percent){
-                        x+=1;
-                        offContext.clearRect(0,0,200,100);
-                        offContext.fillRect(start_x-rect_width-5+x,start_y-rect_height/2-height/2,rect_width,rect_height);
-                        rect_pixel=this.get_global(offContext);
-                        percent1=this.get_change2(letter_pixel,rect_pixel);
-                        if(x>rect_width+5){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
+                else if(position===6){
+                    offContext.fillRect(start_x-rect_width+x,start_y-y,
+                        rect_width,rect_height);
                 }
-                else if(temp3===6){
-                    offContext.fillRect(start_x-rect_width,start_y,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-
-                    //在该状态空间内移动
-                    for(let x=0;x<=width;x++){
-                        for(let y=0;y<=x*slope;y++){
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(start_x-rect_width+x,start_y-y,rect_width,rect_height);
-                            rect_pixel=this.get_global(offContext);
-                            percent1=this.get_change2(letter_pixel,rect_pixel);
-                            if (percent1>=percent){
-                                break;
-                            }
-                        }
-                        if(percent1>=percent){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
+                else if(position===7){
+                    offContext.fillRect(start_x+width/2-rect_width/2,start_y+5-y,
+                        rect_width,rect_height);
                 }
-                else if(temp3===7){
-                    offContext.fillRect(start_x+width/2-rect_width/2,start_y+5,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-                    if (percent1!==0){
-                        console.log("警告警告");
-                    }
-                    let x=0;
-                    while(percent1<percent){
-                        x+=1;
-                        offContext.clearRect(0,0,200,100);
-                        offContext.fillRect(start_x+width/2-rect_width/2,start_y+5-x,rect_width,rect_height);
-                        rect_pixel=this.get_global(offContext);
-                        percent1=this.get_change2(letter_pixel,rect_pixel);
-                        if(x>rect_height+5){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
+                else if(position===8){
+                    offContext.fillRect(start_x+width-x,start_y-y,
+                        rect_width,rect_height);
                 }
-                else if(temp3===8){
-                    offContext.fillRect(start_x+width,start_y,rect_width,rect_height);
-                    let rect_pixel=this.get_global(offContext);
-                    percent1=this.get_change2(letter_pixel,rect_pixel);
-                    if (percent1!==0){
-                        console.log("警告警告");
-                    }
-                    for(let x=0;x<=width;++x){
-                        for(let y=0;y<=x*slope;y++){
-                            offContext.clearRect(0,0,200,100);
-                            offContext.fillRect(start_x+width-x,start_y-y,rect_width,rect_height);
-                            rect_pixel=this.get_global(offContext);
-                            percent1=this.get_change2(letter_pixel,rect_pixel);
-                            if (percent1>=percent){
-                                break;
-                            }
-                        }
-                        if (percent1>=percent){
-                            break;
-                        }
-                    }
-                    ctx.drawImage(offCanvas,0,0);
-                }
-                return percent1;
+                ctx.drawImage(offCanvas,0,0);
             },
+
             /**
              * 计算文本的宽度和高度
              */
@@ -735,10 +577,11 @@
 
                 return [Math.ceil(max_wh[1]),Math.ceil(max_wh[1])];
             },
+
             /**
-             * 获取26*8*11个数据
+             * 获取26*8*11个数据，且前26个为0遮挡全字母示例
              */
-            getData: function() {
+            getRandomData: function() {
                 const letterList=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
                     'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
                 //生成11个随机等级
@@ -746,7 +589,7 @@
                 let letterArr = [];//存储JSON数据
                 for(let i=0;i<letterList.length;i++){
                     //临时对象
-                    let obj={ letter: 'a', direction: -1, givenPercent: 0};
+                    let obj={ letter: 'a', position: -1, percent1: 0};
                     obj.letter=letterList[i];//定义字母
                     letterArr.push(obj);
                 }
@@ -754,17 +597,111 @@
                     for(let j=1;j<=8;j++){
                         for(let k=0; k<cover_level.length;k++){
                             //临时对象
-                            let obj={ word: 'a', direction: 1, givenPercent: 0};
+                            let obj={ letter: 'a', position: 1, percent1: 0};
                             obj.letter=letterList[i];//定义字母
-                            obj.direction=j;//定义方向
-                            // obj.givenPercent=Math.random() * 0.09 + cover_level[k];
-                            obj.givenPercent=cover_level[k];
+                            obj.position=j;//定义方向
+                            // obj.percent1=Math.random() * 0.09 + cover_level[k];
+                            obj.percent1=cover_level[k];
                             letterArr.push(obj);//push的只是引用
                         }
                     }
                 }
-                return letterArr;
+
+                let caseOrder = [] // 定义一个空数组用于存储已经选过的数字的下标
+                let newCaseList = [] // 定义一个空数组用于存储生成的新数组
+                for (let i = 0; i <= 25; i++) {
+                    caseOrder.push(i);
+                    newCaseList.push(letterArr[(i)])
+                }
+
+                // 打乱前26个字母顺序
+                function shuffle(array) {
+                    for (let i = array.length - 1; i > 0; i--) {
+                        let j = Math.floor(Math.random() * (i + 1)); // 生成 0 到 i 的随机整数
+                        let temp = array[i];
+                        array[i] = array[j];
+                        array[j] = temp;
+                    }
+                    return array;
+                }
+                // 前26个示例
+                newCaseList = shuffle(newCaseList)
+
+                // 循环直到新的列表中包含和原始列表相同数量的案例
+                while (newCaseList.length < letterArr.length) {
+                    // 生成一个随机数字，范围为 0 到 caseList.length-1
+                    // parseInt不能少
+                    let num = parseInt(Math.random() * (letterArr.length))
+
+                    // 如果该数字的下标没有被选过，则将其存入 caseOrder 数组中，
+                    // 并将该下标对应的元素加入 newCaseList 数组中。
+                    if (caseOrder.indexOf(num) === -1) {
+                        caseOrder.push(num)
+                        newCaseList.push(letterArr[num])
+                    }
+                }
+                console.log(newCaseList);
+                return newCaseList;
             },
+
+            getCsvData: function() {
+                return new Promise((resolve, reject) => {
+                    fetch('data/case.csv')
+                    .then(response => response.text())
+                    .then(contents => {
+                        const dataArray = this.parseCSV(contents);
+                        console.log(dataArray);
+
+                        let caseOrder = [] // 定义一个空数组用于存储已经选过的数字的下标
+                        let newCaseList = [] // 定义一个空数组用于存储生成的新数组
+
+                        // 循环直到新的列表中包含和原始列表相同数量的案例
+                        while (newCaseList.length < dataArray.length) {
+                            // 生成一个随机数字，范围为 0 到 caseList.length-1
+                            // parseInt不能少
+                            let num = parseInt(Math.random() * (dataArray.length))
+
+                            // 如果该数字的下标没有被选过，则将其存入 caseOrder 数组中，
+                            // 并将该下标对应的元素加入 newCaseList 数组中。
+                            if (caseOrder.indexOf(num) === -1) {
+                                caseOrder.push(num)
+                                newCaseList.push(dataArray[num])
+                            }
+                        }
+
+                        resolve(newCaseList); // 解析完成后将数组对象传递给 resolve
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        reject(error);
+                    });
+                });
+            },
+
+            // 解析 CSV 文件内容并返回数组对象
+            parseCSV: function(contents) {
+                const lines = contents.split('\n');
+                const headers = lines[0].trimEnd().split(','); // CSV 文件的列分隔符为逗号
+                const dataArray = [];
+
+                console.log(headers);
+
+                for (let i = 1; i < lines.length-1; i++) {
+                    let line = lines[i];
+                    const values = line.split(','); // CSV 文件的列分隔符为逗号
+                    const data = {};
+
+                    for (let j = 0; j < headers.length; j++) {
+                    const header = headers[j];
+                     // 将除了第一列以外的值转为浮点数
+                        data[header] = j === 0 ? values[j] : parseFloat(values[j]);
+                    }
+
+                    dataArray.push(data);
+                }
+
+                return dataArray;
+            }
         }
     })
 </script>
