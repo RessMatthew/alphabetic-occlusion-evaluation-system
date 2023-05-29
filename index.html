@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>字母遮挡识别系统-实验</title>
+    <title>实验1-字母遮挡识别系统</title>
     <link rel="stylesheet" href="./css/index.css">
     <style>
         [v-cloak]{
@@ -217,7 +217,7 @@
                             let link = document.createElement('a');
                             link.href = csvString;
                             //对下载的文件命名
-                            link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
+                            link.download = "实验1-label_user_" + this.username + "_" + this.sex + "_" + this.age +
                                 "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
                                     .figureStudy + "_" + this.analysisStudy + ".csv";
 
@@ -337,11 +337,11 @@
              */
             initTimer: function () {
                 let that = this;
-                let timerCount = 1.0 ; //每个案例限制1000ms时间
+                let timerCount = 0.8 ; //每个案例限制1000ms时间
 
                 this.flash = setInterval(function () { //每500ms刷新一次
                     // document.getElementById("_time").innerHTML= '字母消失倒计时：'+ '<span style="color:red;">'+ timerCount + '<span/>' +'秒';
-                    timerCount -= 0.5;
+                    timerCount -= 0.4;
 
                     //倒计时结束
                     if (timerCount === 0){
@@ -349,7 +349,7 @@
                         ctx.clearRect(0,0,200,100); // 清除字母
                         clearInterval(that.flash);   // 关闭刷新
                     }
-                }, 500);
+                }, 400);
             },
 
             /**
@@ -436,7 +436,7 @@
                         let link = document.createElement('a');
                         link.href = csvString;
                         //对下载的文件命名
-                        link.download = "label_user_" + this.username + "_" + this.sex + "_" + this.age +
+                        link.download = "实验1-label_user_" + this.username + "_" + this.sex + "_" + this.age +
                             "_" + this.academic + "_" + this.major + "_" + this.dataStudy + "_" + this
                             .figureStudy + "_" + this.analysisStudy + ".csv";
 
@@ -646,7 +646,7 @@
 
             getCsvData: function() {
                 return new Promise((resolve, reject) => {
-                    fetch('data/case.csv')
+                    fetch('data/expriment-1.csv')
                     .then(response => response.text())
                     .then(contents => {
                         const dataArray = this.parseCSV(contents);
